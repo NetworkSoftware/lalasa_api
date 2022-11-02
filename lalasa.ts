@@ -807,9 +807,8 @@ app.post('/prisma/lalasa/order', async (req, res) => {
     if (result) {
       if (orderType == "Grooming") {
         pushNotification(orderType + ' Service', "New Service available", "key=" + sbKey, '/topics/allDevices')
-      } else {
-        res.json({ "orderId": orderId, "message": "Order successfully created.", "success": true })
       }
+      res.json({ "orderId": orderId, "message": "Order successfully created.", "success": true })
     } else {
       res.json({ "message": "Oops! An error occurred.", "success": false })
     }
