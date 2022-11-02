@@ -2459,18 +2459,18 @@ app.use(express.static(__dirname + '/prisma/lalasa/video'));
 
 
 app.get('/prisma/lalasa/images/*', async (req, res) => {
-  res.sendFile('C:/Users/Admin/Desktop/Network_api/serviceboy/' + req.path.replace("small/", "").replace("prisma/", ""))
-  // res.sendFile('/home/arthy' + req.path.replace("small/", ""))
+  // res.sendFile('C:/Users/Admin/Desktop/Network_api/serviceboy/' + req.path.replace("small/", "").replace("prisma/", ""))
+  res.sendFile('/home/arthy' + req.path.replace("small/", ""))
 })
 
 app.get('/prisma/lalasa/feed/*', async (req, res) => {
-  res.sendFile('C:/Users/Admin/Desktop/Network_api/' + req.path.replace("small/", "").replace("prisma/", ""))
-  // res.sendFile('/home/arthy' + req.path)
+  // res.sendFile('C:/Users/Admin/Desktop/Network_api/' + req.path.replace("small/", "").replace("prisma/", ""))
+  res.sendFile('/home/arthy' + req.path)
 })
 
 app.get('/prisma/lalasa/video/*', async (req, res) => {
-  res.sendFile('C:/Users/Admin/Desktop/Network_api/' + req.path.replace("small/", "").replace("prisma/", ""))
-  // res.sendFile('/home/arthy' + req.path)
+  // res.sendFile('C:/Users/Admin/Desktop/Network_api/' + req.path.replace("small/", "").replace("prisma/", ""))
+  res.sendFile('/home/arthy' + req.path)
 })
 
 app.use((req, res) => {
