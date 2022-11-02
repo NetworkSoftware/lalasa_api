@@ -223,6 +223,8 @@ model lalasa_serviceboy {
   serviceType     String?
   isDelete        String   @default("1")
   wallet          Int      @default(0)
+  otp             String   @default("0000")
+  rating          String   @default("0")
   createdOn       DateTime @default(now())
 }
 

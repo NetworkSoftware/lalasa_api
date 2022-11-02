@@ -159,7 +159,6 @@ app.post('/prisma/lalasa/login', async (req, res) => {
   await executeLatinFunction()
   var phone = req.body.phone
   var password = req.body.password
-  console.log(req.body)
   if (phone && password) {
     const result = await prisma.lalasa_user.findFirst({
       where: { AND: [{ OR: [{ name: phone }, { phone: phone }, { email: phone }] }, { password: password }] }
@@ -845,7 +844,6 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   var sbId = req.body.sbId
   var status = req.body.status
   var orderId = req.body.orderId
-  console.log(req.body)
   if (sbId && orderId && status) {
     const result = await prisma.lalasa_order.updateMany({
       where: { id: Number(orderId) },
@@ -1585,6 +1583,68 @@ app.post('/prisma/lalasa/serviceboy_login', async (req, res) => {
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/get_user', async (req, res) => {
+  await executeLatinFunction()
+  var phone = req.body.phone
+  var otp = req.body.otp
+  if (phone && otp) {
+    const result = await prisma.lalasa_serviceboy.findFirst({
+      where: { OR: [{ email: phone }, { phone: phone }] },
+    });
+    if (result) {
+      const resultUpdate = await prisma.lalasa_serviceboy.updateMany({
+        where: { OR: [{ email: phone }, { phone: phone }] },
+        data: { otp: otp }
+      });
+      res.json({ "firstName": result.firstName, "lastName": result.lastName, "phone": result.phone, "message": "Welcome to LALASA.", "success": true });
+    } else {
+      res.json({ "message": "Service Boy not found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/sb_reset_password', async (req, res) => {
+  await executeLatinFunction()
+  var newpw = req.body.newpw
+  var phone = req.body.phone
+  var otp = req.body.otp
+  if (newpw && phone && otp) {
+    const result = await prisma.lalasa_serviceboy.findFirst({
+      where: { AND: [{ OR: [{ phone: phone }, { email: phone }] }, { otp: otp }] },
+    })
+    if (result) {
+      const resultNew = await prisma.lalasa_serviceboy.updateMany({
+        where: { OR: [{ phone: phone }, { email: phone }] },
+        data: { password: newpw, otp: otp }
+      });
+      if (resultNew) {
+        res.json({ "message": "Password Change Sucessfully.", "success": true });
+      } else {
+        res.json({ "message": "Oops! An error occurred.", "success": false });
+      }
+
+    } else {
+      res.json({ "message": "No service boy Exsists.", "success": false });
+    }
+  }
+})
+
+app.get('/prisma/lalasa/sb_otp', async (req, res) => {
+  await executeLatinFunction()
+  var phone = req.query.phone
+  const result = (await prisma.lalasa_serviceboy.findFirst({
+    where: { OR: [{ phone: phone + "" }, { email: phone + "" }] },
+    orderBy: { id: "desc" }
+  }))
+  if (result) {
+    res.json({ "otp": result.otp, "message": "OTP succesfully send", "success": true });
+  } else {
+    res.json({ "message": "No Service boy found.", "success": false });
   }
 })
 
