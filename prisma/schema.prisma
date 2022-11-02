@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model lalasa_user {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  gender    String
+  address   String?
+  cc        String
+  phone     String
+  password  String
+  auth_key  String
+  otp       String?
+  image     String?
+  pincode   String
+  createdOn DateTime @default(now())
+}
+
+model lalasa_shop {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String
+  address   String
+  password  String
+  category  String
+  status    String   @default("registered")
+  role      String
+  rating    String   @default("5")
+  latlong   String
+  isDelete  String   @default("1")
+  image     String
+  pincode   String
+  createdOn DateTime @default(now())
+}
+
+model lalasa_pets {
+  id           Int      @id @default(autoincrement())
+  name         String
+  type         String
+  image        String
+  breed        String?
+  dob          String?
+  gender       String?
+  weight       String?
+  description  String
+  freedelivery String   @default("0")
+  rating       String   @default("5")
+  offer        String   @default("0")
+  age          String?
+  price        String   @default("0")
+  strikePrice  String   @default("0")
+  bestSelling  String   @default("0")
+  userId       String?
+  shopId       String?
+  isAdopt      String   @default("0")
+  category     String?
+  shopType     String?
+  quantity     String   @default("1")
+  pincode      String
+  petSize      String?
+  petAgressive String?
+  priceRange   String   @default("[]")
+  discount     String   @default("NA")
+  createdOn    DateTime @default(now())
+}
+
+model lalasa_banner {
+  id        Int      @id @default(autoincrement())
+  shopId    String
+  image     String
+  title     String
+  offer     String
+  createdOn DateTime @default(now())
+}
+
+model lalasa_address {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String
+  city      String
+  zipcode   String
+  address   String
+  place     String
+  userId    String
+  createdOn DateTime @default(now())
+}
+
+model lalasa_treatment {
+  id          Int      @id @default(autoincrement())
+  image       String
+  type        String
+  description String
+  price       String
+  createdOn   DateTime @default(now())
+}
+
+model lalasa_order {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  petId       String
+  price       String
+  serviceType String
+  date        String
+  time        String?
+  address     String
+  payMethods  String
+  promoCode   String
+  offerAmt    String   @default("0")
+  subTotal    String   @default("0")
+  shippingFee String   @default("0")
+  tax         String   @default("0")
+  grandTotal  String   @default("0")
+  review      String?
+  rating      String   @default("5")
+  orderType   String
+  assignShop  String?
+  status      String
+  paymentId   String
+  reason      String
+  items       String
+  sbId        String?
+  createdOn   DateTime @default(now())
+}
+
+model lalasa_paycard {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  cardNo     String
+  holderName String
+  expDate    String
+  cvv        String
+  createdOn  DateTime @default(now())
+}
+
+model lalasa_coupon {
+  id          Int      @id @default(autoincrement())
+  offercode   String
+  description String
+  title       String
+  isPercent   String   @default("0")
+  value       String
+  status      String   @default("0")
+  maxNumber   String   @default("1")
+  minOrder    String   @default("100")
+  offerType   String
+  shopId      String?
+  createdOn   DateTime @default(now())
+}
+
+model track_order {
+  id          Int      @id @default(autoincrement())
+  orderId     String
+  status      String
+  orderItems  String   @default("1")
+  description String
+  createdOn   DateTime @updatedAt
+}
+
+model lalasa_settings {
+  id    Int    @id @default(autoincrement())
+  name  String @default("1")
+  value String
+}
+
+model lalasa_review {
+  id        Int      @id @default(autoincrement())
+  name      String
+  review    String
+  userId    String
+  createdOn DateTime @default(now())
+}
+
+model lalasa_foodcal {
+  id        Int      @id @default(autoincrement())
+  grams     String
+  age       String
+  weight    String
+  createdOn DateTime @default(now())
+}
+
+model lalasa_serviceboy {
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  gender          String
+  dob             String
+  email           String
+  phone           String
+  alternatePh     String
+  emergencyPh     String
+  selfiePic       String
+  bloodGroup      String
+  password        String
+  status          String
+  accNumber       String?
+  ifsc            String?
+  pan             String?
+  aadhaar         String?
+  drivingLi       String?
+  voterId         String?
+  passport        String?
+  fatherName      String?
+  motherName      String?
+  siblings        String?
+  maritalStatus   String?
+  ifMarried       String?
+  children        String?
+  vehicle         String?
+  groomExperience String?
+  certificate     String?
+  groomingKit     String?
+  serviceType     String?
+  isDelete        String   @default("1")
+  wallet          Int      @default(0)
+  createdOn       DateTime @default(now())
+}
+
+model lalasa_wallet {
+  id          Int      @id @default(autoincrement())
+  sbId        String
+  operation   String
+  serviceAmt  String
+  payMode     String
+  serviceType String
+  reason      String
+  createdOn   DateTime @default(now())
+}
+
+model lalasa_notify {
+  id        Int      @id @default(autoincrement())
+  title     String
+  subTitle  String
+  isRead    String   @default("1")
+  createdOn DateTime @default(now())
+}
