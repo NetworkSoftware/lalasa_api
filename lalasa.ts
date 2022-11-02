@@ -853,7 +853,9 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
       const resultupdate = await prisma.lalasa_order.findFirst({
         where: { id: Number(orderId) },
       });
-      pushNotification(resultupdate.orderType + ' Service', "New Service available", "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
+      if (status != "completed") {
+        pushNotification(resultupdate.orderType + ' Service', "New Service available", "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
+      }
       res.json({ "message": "Service Boy status successfully updated.", "success": true })
     } else {
       res.json({ "message": "Oops! An error occurred.", "success": false })
@@ -868,14 +870,20 @@ app.get('/prisma/lalasa/getorder', async (req, res) => {
   var orderType = req.query.orderType
   var status = req.query.status
   var sbId = req.query.sbId
-  const result = await prisma.lalasa_order.findMany({
-    where: {
-      OR: [
-        status == "progress" ? { AND: [{ NOT: [{ status: "ordered" }, { status: "completed" }, { status: "cancelled" }] }, { orderType: orderType + "" }] } : { AND: [orderType ? { orderType: orderType + "" } : {}, status ? { status: status + "" } : {}, sbId ? { sbId: sbId + "" } : {}] }
-      ]
-    },
-    orderBy: { id: "desc" }
-  });
+  var result
+  if (status == "progress") {
+    result = await prisma.lalasa_order.findMany({
+      where:
+        status == "progress" ? { AND: [{ NOT: [{ status: "ordered" }, { status: "completed" }, { status: "cancelled" }] }, { orderType: orderType + "" }, { sbId: sbId + "" }] } : {}
+    });
+  } else {
+    result = await prisma.lalasa_order.findMany({
+      where: {
+        AND: [orderType ? { orderType: orderType + "" } : {}, status ? { status: status + "" } : {}, sbId ? { sbId: sbId + "" } : {}
+        ]
+      }
+    });
+  }
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
 })
 
