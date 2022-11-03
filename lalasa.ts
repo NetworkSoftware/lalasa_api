@@ -27,7 +27,7 @@ var transporter = nodemailer.createTransport({
 
 const subject = "LALASA\nDear *\n\nWelcome to LALASA.\n\nONE STOP. ONE APP \n\nYour one stop location to access all our services from LALASA and many more to come.\n\nYour registration particulars are shown below.\n\nUsername : ** \nRegisters email : # \nOTP : ***\n\nYour password need not be changed. However if you wish to make changes to your password you may do so by selecting “Change Password” option from your app.\n\nA four digit verification code will be sent to your registered email to verify your user credentials, upon successful verification you can change your password.\n\nAll purchases made through the app can be seen under your user profile.\n\nThank you for joining the LALASA community.\n\nSincerely,\n\nTeam LALASA"
 const sbKey = 'AAAAJfJaPz0:APA91bGGT5HqyfpdbeCs4ydceex8RkjaXOKYea2eDEhxAoj-m502UG-cQfpGBuZ-qEvXCPJ1Jl7VBSo22MhKt9Asmi9qIXDFEG-YLQSztaFXtn7LlVgRyiyCWtF0ROktKu3edNHxbtRX'
-
+const userKey = 'AAAAQqL-5PM:APA91bHicbwlTqR5XA8KomoRwDLchEqBHSeID907UMIJw8xgNbh9wctoL76iyXe9hcFpnqloZYlzfLZvJqVLVJ0ZZAMSdi1pJJ_wHx923gXlfxkVYRPeMu6ZwuBxsLlTrGquzHXhXY9U'
 const prisma = new PrismaClient()
 const app = express()
 
@@ -843,6 +843,11 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   var sbId = req.body.sbId
   var status = req.body.status
   var orderId = req.body.orderId
+  var commission = req.body.commission
+  var payMode = req.body.payMode
+  var serviceType = req.body.serviceType
+  var isNotify = req.body.isNotify
+  console.log(req.body)
   if (sbId && orderId && status) {
     const result = await prisma.lalasa_order.updateMany({
       where: { id: Number(orderId) },
@@ -851,9 +856,18 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
     if (result) {
       const resultupdate = await prisma.lalasa_order.findFirst({
         where: { id: Number(orderId) },
+        orderBy: { id: 'desc' }
       });
-      if (status != "completed") {
+      if (status != "completed" && isNotify == null) {
         pushNotification(resultupdate.orderType + ' Service', "New Service available", "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
+      } else if (status == "completed") {
+        await prisma.lalasa_wallet.create({
+          data: { sbId: sbId, operation: "minus", serviceAmt: commission, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+        })
+        const resultupdate = await prisma.lalasa_serviceboy.update({
+          where: { id: Number(sbId) },
+          data: { wallet: { decrement: Number(commission) } }
+        });
       }
       res.json({ "message": "Service Boy status successfully updated.", "success": true })
     } else {
@@ -873,14 +887,16 @@ app.get('/prisma/lalasa/getorder', async (req, res) => {
   if (status == "progress") {
     result = await prisma.lalasa_order.findMany({
       where:
-        status == "progress" ? { AND: [{ NOT: [{ status: "ordered" }, { status: "completed" }, { status: "cancelled" }] }, { orderType: orderType + "" }, { sbId: sbId + "" }] } : {}
+        status == "progress" ? { AND: [{ NOT: [{ status: "ordered" }, { status: "completed" }, { status: "cancelled" }] }, { orderType: orderType + "" }, { sbId: sbId + "" }] } : {},
+      orderBy: { id: 'desc' }
     });
   } else {
     result = await prisma.lalasa_order.findMany({
       where: {
         AND: [orderType ? { orderType: orderType + "" } : {}, status ? { status: status + "" } : {}, sbId ? { sbId: sbId + "" } : {}
         ]
-      }
+      },
+      orderBy: { id: 'desc' }
     });
   }
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
