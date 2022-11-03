@@ -806,7 +806,8 @@ app.post('/prisma/lalasa/order', async (req, res) => {
     })
     if (result) {
       if (orderType == "Grooming") {
-        pushNotification(orderType + ' Service', "New Service available", "key=" + sbKey, '/topics/allDevices')
+        var metadata = { "id": result.id, "orderType": result.orderType, "status": "ordered" }
+        pushNotification(orderType + ' Service', "New Service available", metadata, "key=" + sbKey, '/topics/allDevices')
       }
       res.json({ "orderId": orderId, "message": "Order successfully created.", "success": true })
     } else {
@@ -859,7 +860,8 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
         orderBy: { id: 'desc' }
       });
       if (status != "completed" && isNotify == null) {
-        pushNotification(resultupdate.orderType + ' Service', "New Service available", "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
+        var metadata = { "id": resultupdate.id, "orderType": resultupdate.orderType, "status": "progress" }
+        pushNotification(resultupdate.orderType + ' Service', "Service assigned by Admin", metadata, "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
       } else if (status == "completed") {
         await prisma.lalasa_wallet.create({
           data: { sbId: sbId, operation: "minus", serviceAmt: commission, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
@@ -1995,11 +1997,11 @@ async function sendmail(mailOptions) {
   });
 }
 
-async function pushNotification(title, message, key, topic) {
+async function pushNotification(title, message, metadata, key, topic) {
   const data = JSON.stringify({
     "to": topic,
     "priority": "high",
-    "data": { "title": title, "message": message }
+    "data": { "title": title, "message": message, "metadata": metadata }
   })
   const options = {
     hostname: 'fcm.googleapis.com',
