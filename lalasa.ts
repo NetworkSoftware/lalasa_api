@@ -1562,7 +1562,6 @@ app.delete('/prisma/lalasa/foodcal', async (req, res) => {
   }
 })
 
-
 app.post('/prisma/lalasa/serviceboy', async (req, res) => {
   await executeLatinFunction()
   var firstName = req.body.firstName
@@ -1579,13 +1578,20 @@ app.post('/prisma/lalasa/serviceboy', async (req, res) => {
   var status = req.body.status ? req.body.status : "bankDetails"
   var serviceType = req.body.serviceType
   if (firstName && lastName && gender && dob && email && phone && alternatePh && emergencyPh && selfiePic && bloodGroup && password && status) {
-    const result = await prisma.lalasa_serviceboy.create({
-      data: { firstName: firstName, lastName: lastName, gender: gender, dob: dob, email: email, phone: phone, alternatePh: alternatePh, emergencyPh: emergencyPh, selfiePic: selfiePic, bloodGroup: bloodGroup, password: password, status: status, serviceType: serviceType }
+    const resultUser = await prisma.lalasa_serviceboy.findFirst({
+      where: { phone: phone }
     });
-    if (result) {
-      res.json({ "data": result, "message": "Service Boy successfully created.", "success": true })
+    if (!resultUser) {
+      const result = await prisma.lalasa_serviceboy.create({
+        data: { firstName: firstName, lastName: lastName, gender: gender, dob: dob, email: email, phone: phone, alternatePh: alternatePh, emergencyPh: emergencyPh, selfiePic: selfiePic, bloodGroup: bloodGroup, password: password, status: status, serviceType: serviceType }
+      });
+      if (result) {
+        res.json({ "data": result, "message": "Service Boy successfully created.", "success": true })
+      } else {
+        res.json({ "message": "Oops! An error occurred.", "success": false })
+      }
     } else {
-      res.json({ "message": "Oops! An error occurred.", "success": false })
+      res.json({ "message": "Phone Number already taken. Existing User", "success": false })
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
