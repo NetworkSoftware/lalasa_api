@@ -7,7 +7,7 @@
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "ts-node lalasa.ts",
         "build": "tsc --project ./",
-        "deploy": "git pull https://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@github.com/NetworkSoftware/lalasa_api.git master && npm install && npx prisma generate && tsc --project ./ &&  forever stop  dist/lalasa.js && forever start dist/lalasa.js"
+        "deploy": "git pull https://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@github.com/NetworkSoftware/lalasa_api.git master && npm install && npx prisma generate && tsc --project ./ &&  forever stop  dist/lalasa.js && forever start dist/lalasa.js"
     },
     "author": "",
     "license": "ISC",

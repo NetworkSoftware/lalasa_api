@@ -2368,6 +2368,19 @@ app.delete('/prisma/lalasa/fileDelete', async (req, res) => {
   }
 })
 
+app.get('/prisma/lalasa/servicewallet', async (req, res) => {
+  await executeLatinFunction()
+
+  var process = req.query.process
+  var pending = req.query.pending
+  var wallet = 0
+
+  const result = await prisma.lalasa_serviceboy.findMany({
+    where: process ? { wallet: { gt: wallet } } : pending ? { wallet: { lt: wallet } } : {},
+    orderBy: { wallet: "desc" }
+  })
+  res.json({ "data": result, "message": "successfully Fetched.", "success": 1 });
+})
 
 const upload = multer({
   storage: multer.diskStorage({
