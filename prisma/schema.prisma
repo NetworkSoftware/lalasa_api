@@ -130,6 +130,8 @@ model lalasa_order {
   reason      String
   items       String
   sbId        String?
+  serviceCost Int      @default(0)
+  commission  String   @default("0")
   createdOn   DateTime @default(now())
 }
 

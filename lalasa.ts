@@ -845,6 +845,7 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   var status = req.body.status
   var orderId = req.body.orderId
   var serviceCost = req.body.serviceCost
+  var commission = req.body.commission
   var payMode = req.body.payMode
   var serviceType = req.body.serviceType
   var isNotify = req.body.isNotify
@@ -862,13 +863,27 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
         var metadata = { "id": resultupdate.id, "orderType": resultupdate.orderType, "status": "progress" }
         pushNotification(resultupdate.orderType + ' Service', "Service assigned by Admin", metadata, "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
       } else if (status == "completed") {
-        await prisma.lalasa_wallet.create({
-          data: { sbId: sbId, operation: "minus", serviceAmt: serviceCost, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
-        })
-        const resultupdate = await prisma.lalasa_serviceboy.update({
-          where: { id: Number(sbId) },
-          data: { wallet: { decrement: Number(serviceCost) } }
+        await prisma.lalasa_order.update({
+          where: { id: Number(orderId) },
+          data: { serviceCost: Number(serviceCost), commission: commission }
         });
+        if (payMode == "ONLINE") {
+          await prisma.lalasa_serviceboy.update({
+            where: { id: Number(sbId) },
+            data: { wallet: { increment: Number(serviceCost) } }
+          });
+          await prisma.lalasa_wallet.create({
+            data: { sbId: sbId, operation: "add", serviceAmt: serviceCost, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+          })
+        } else {
+          await prisma.lalasa_serviceboy.update({
+            where: { id: Number(sbId) },
+            data: { wallet: { decrement: Number(commission) } }
+          });
+          await prisma.lalasa_wallet.create({
+            data: { sbId: sbId, operation: "minus", serviceAmt: serviceCost, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+          })
+        }
       }
       res.json({ "message": "Service Boy status successfully updated.", "success": true })
     } else {
