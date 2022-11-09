@@ -848,7 +848,6 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   var payMode = req.body.payMode
   var serviceType = req.body.serviceType
   var isNotify = req.body.isNotify
-  console.log(req.body)
   if (sbId && orderId && status) {
     const result = await prisma.lalasa_order.updateMany({
       where: { id: Number(orderId) },
