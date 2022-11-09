@@ -844,7 +844,7 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   var sbId = req.body.sbId
   var status = req.body.status
   var orderId = req.body.orderId
-  var commission = req.body.commission
+  var serviceCost = req.body.serviceCost
   var payMode = req.body.payMode
   var serviceType = req.body.serviceType
   var isNotify = req.body.isNotify
@@ -864,11 +864,11 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
         pushNotification(resultupdate.orderType + ' Service', "Service assigned by Admin", metadata, "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
       } else if (status == "completed") {
         await prisma.lalasa_wallet.create({
-          data: { sbId: sbId, operation: "minus", serviceAmt: commission, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+          data: { sbId: sbId, operation: "minus", serviceAmt: serviceCost, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
         })
         const resultupdate = await prisma.lalasa_serviceboy.update({
           where: { id: Number(sbId) },
-          data: { wallet: { decrement: Number(commission) } }
+          data: { wallet: { decrement: Number(serviceCost) } }
         });
       }
       res.json({ "message": "Service Boy status successfully updated.", "success": true })
