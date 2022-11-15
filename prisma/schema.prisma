@@ -234,7 +234,7 @@ model lalasa_wallet {
   id          Int      @id @default(autoincrement())
   sbId        String
   operation   String
-  serviceAmt  String
+  serviceAmt  Int
   payMode     String
   serviceType String
   reason      String

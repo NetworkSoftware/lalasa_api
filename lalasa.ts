@@ -849,10 +849,11 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   var payMode = req.body.payMode
   var serviceType = req.body.serviceType
   var isNotify = req.body.isNotify
+  var reason = req.body.reason
   if (sbId && orderId && status) {
     const result = await prisma.lalasa_order.updateMany({
       where: { id: Number(orderId) },
-      data: { sbId: sbId, status: status }
+      data: { sbId: sbId, status: status, reason: reason }
     });
     if (result) {
       const resultupdate = await prisma.lalasa_order.findFirst({
@@ -873,7 +874,7 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
             data: { wallet: { increment: Number(serviceCost) } }
           });
           await prisma.lalasa_wallet.create({
-            data: { sbId: sbId, operation: "add", serviceAmt: serviceCost, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+            data: { sbId: sbId, operation: "add", serviceAmt: Number(serviceCost), payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
           })
         } else {
           await prisma.lalasa_serviceboy.update({
@@ -881,7 +882,7 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
             data: { wallet: { decrement: Number(commission) } }
           });
           await prisma.lalasa_wallet.create({
-            data: { sbId: sbId, operation: "minus", serviceAmt: serviceCost, payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+            data: { sbId: sbId, operation: "minus", serviceAmt: Number(serviceCost), payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
           })
         }
       }
@@ -1861,7 +1862,7 @@ app.post('/prisma/lalasa/wallet', async (req, res) => {
   var reason = req.body.reason ? req.body.reason : "NA"
   if (sbId && operation && serviceAmt && payMode && serviceType) {
     const result = await prisma.lalasa_wallet.create({
-      data: { sbId: sbId, operation: operation, serviceAmt: serviceAmt, payMode: payMode, serviceType: serviceType, reason: reason }
+      data: { sbId: sbId, operation: operation, serviceAmt: Number(serviceAmt), payMode: payMode, serviceType: serviceType, reason: reason }
     });
     if (result) {
       const resultupdate = await prisma.lalasa_serviceboy.update({
@@ -1889,7 +1890,7 @@ app.put('/prisma/lalasa/wallet', async (req, res) => {
   if (id && sbId && operation && serviceAmt && payMode && serviceType) {
     const result = await prisma.lalasa_wallet.updateMany({
       where: { id: Number(id) },
-      data: { sbId: sbId, operation: operation, serviceAmt: serviceAmt, payMode: payMode, serviceType: serviceType, reason: reason }
+      data: { sbId: sbId, operation: operation, serviceAmt: Number(serviceAmt), payMode: payMode, serviceType: serviceType, reason: reason }
     });
     if (result) {
       res.json({ "message": "Service Boy wallet successfully updated.", "success": true });
@@ -1909,11 +1910,25 @@ app.get('/prisma/lalasa/wallet', async (req, res) => {
     orderBy: { id: "desc" }
   })
   if (result) {
+    var fromdate = new Date();
+    var todate = new Date();
+    fromdate.setDate(fromdate.getDate() - 1);
+    todate.setDate(todate.getDate() + 1);
+    const todayresult = await prisma.lalasa_wallet.aggregate({
+      where: { AND: [{ sbId: sbId + "" }, { createdOn: { gt: fromdate } }, { createdOn: { lt: todate } }] },
+      _sum: { serviceAmt: true }
+    })
+
+    const totalresult = await prisma.lalasa_wallet.aggregate({
+      where: { sbId: sbId + "" },
+      _sum: { serviceAmt: true }
+    })
+
     const resultupdate = await prisma.lalasa_serviceboy.findFirst({
       where: { id: Number(sbId) },
       orderBy: { id: "desc" }
     })
-    res.json({ "data": result, "totalAmount": resultupdate.wallet, "message": "wallet successfully fetched", "success": true });
+    res.json({ "data": result, "todayEarn": todayresult._sum.serviceAmt ? todayresult._sum.serviceAmt : 0, "totalEarn": totalresult._sum.serviceAmt ? totalresult._sum.serviceAmt : 0, "totalAmount": resultupdate.wallet, "message": "wallet successfully fetched", "success": true });
   } else {
     res.json({ "message": "No wallet found.", "success": false });
   }
