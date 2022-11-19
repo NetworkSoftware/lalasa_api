@@ -1592,13 +1592,14 @@ app.post('/prisma/lalasa/serviceboy', async (req, res) => {
   var password = req.body.password
   var status = req.body.status ? req.body.status : "bankDetails"
   var serviceType = req.body.serviceType
+  var commission = req.body.commission
   if (firstName && lastName && gender && dob && email && phone && alternatePh && emergencyPh && selfiePic && bloodGroup && password && status) {
     const resultUser = await prisma.lalasa_serviceboy.findFirst({
       where: { phone: phone }
     });
     if (!resultUser) {
       const result = await prisma.lalasa_serviceboy.create({
-        data: { firstName: firstName, lastName: lastName, gender: gender, dob: dob, email: email, phone: phone, alternatePh: alternatePh, emergencyPh: emergencyPh, selfiePic: selfiePic, bloodGroup: bloodGroup, password: password, status: status, serviceType: serviceType }
+        data: { firstName: firstName, lastName: lastName, gender: gender, dob: dob, email: email, phone: phone, alternatePh: alternatePh, emergencyPh: emergencyPh, selfiePic: selfiePic, bloodGroup: bloodGroup, password: password, status: status, serviceType: serviceType, commission: commission }
       });
       if (result) {
         res.json({ "data": result, "message": "Service Boy successfully created.", "success": true })
@@ -1778,6 +1779,7 @@ app.put('/prisma/lalasa/serviceboy_update', async (req, res) => {
   var certificate = req.body.certificate
   var groomingKit = req.body.groomingKit
   var serviceType = req.body.serviceType
+  var commission = req.body.commission
   if (id) {
     const result = await prisma.lalasa_serviceboy.update({
       where: { id: Number(id) },
@@ -1785,7 +1787,7 @@ app.put('/prisma/lalasa/serviceboy_update', async (req, res) => {
         firstName: firstName, lastName: lastName, gender: gender, dob: dob, email: email, phone: phone, alternatePh: alternatePh, emergencyPh: emergencyPh, selfiePic: selfiePic, bloodGroup: bloodGroup, password: password, status: "complete",
         accNumber: accNumber, ifsc: ifsc, pan: pan, aadhaar: aadhaar, drivingLi: drivingLi, voterId: voterId, passport: passport,
         fatherName: fatherName, motherName: motherName, siblings: siblings, maritalStatus: maritalStatus, ifMarried: ifMarried, children: children,
-        vehicle: vehicle, groomExperience: groomExperience, certificate: certificate, groomingKit: groomingKit, serviceType: serviceType
+        vehicle: vehicle, groomExperience: groomExperience, certificate: certificate, groomingKit: groomingKit, serviceType: serviceType, commission: commission
       }
     });
     if (result) {

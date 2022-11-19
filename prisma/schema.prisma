@@ -227,6 +227,7 @@ model lalasa_serviceboy {
   wallet          Int      @default(0)
   otp             String   @default("0000")
   rating          String   @default("0")
+  commission      String
   createdOn       DateTime @default(now())
 }
 
