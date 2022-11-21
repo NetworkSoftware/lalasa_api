@@ -1592,7 +1592,7 @@ app.post('/prisma/lalasa/serviceboy', async (req, res) => {
   var password = req.body.password
   var status = req.body.status ? req.body.status : "bankDetails"
   var serviceType = req.body.serviceType
-  var commission = req.body.commission
+  var commission = req.body.commission ? req.body.commission : "0"
   if (firstName && lastName && gender && dob && email && phone && alternatePh && emergencyPh && selfiePic && bloodGroup && password && status) {
     const resultUser = await prisma.lalasa_serviceboy.findFirst({
       where: { phone: phone }
@@ -1824,8 +1824,15 @@ app.get('/prisma/lalasa/serviceboy', async (req, res) => {
   var id = req.query.id
   var status = req.query.status
   var serviceType = req.query.serviceType
+  var showDate = req.query.showDate
+  let dateInMyTimeZone
+  if (showDate != "All") {
+    var date = new Date(showDate + "")
+    var cuarrentdate = moment.tz(date, "MST").format()
+    dateInMyTimeZone = moment.tz(cuarrentdate, "Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss");
+  }
   const result = (await prisma.lalasa_serviceboy.findMany({
-    where: { AND: [id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, serviceType ? { AND: [{ serviceType: { contains: serviceType + "" } }, { isDelete: '1' }, { status: 'complete' }] } : {}] },
+    where: { AND: [id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, serviceType ? { AND: [{ serviceType: { contains: serviceType + "" } }, { isDelete: '1' }, { status: 'complete' }] } : {}, showDate && showDate != 'All' ? { createdOn: { gte: new Date(dateInMyTimeZone) } } : {}] },
     orderBy: { id: "desc" }
   }))
   if (result) {
