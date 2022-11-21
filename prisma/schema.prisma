@@ -249,3 +249,13 @@ model lalasa_notify {
   isRead    String   @default("1")
   createdOn DateTime @default(now())
 }
+
+model lalasa_servicereq {
+  id            Int      @id @default(autoincrement())
+  sbId          String
+  newService    String?
+  serviceStatus String   @default("opened")
+  reason        String?
+  isActive      String   @default("1")
+  createdOn     DateTime @default(now())
+}

@@ -1593,6 +1593,7 @@ app.post('/prisma/lalasa/serviceboy', async (req, res) => {
   var status = req.body.status ? req.body.status : "bankDetails"
   var serviceType = req.body.serviceType
   var commission = req.body.commission ? req.body.commission : "0"
+  var serviceTypes = JSON.parse(serviceType)
   if (firstName && lastName && gender && dob && email && phone && alternatePh && emergencyPh && selfiePic && bloodGroup && password && status) {
     const resultUser = await prisma.lalasa_serviceboy.findFirst({
       where: { phone: phone }
@@ -1602,6 +1603,11 @@ app.post('/prisma/lalasa/serviceboy', async (req, res) => {
         data: { firstName: firstName, lastName: lastName, gender: gender, dob: dob, email: email, phone: phone, alternatePh: alternatePh, emergencyPh: emergencyPh, selfiePic: selfiePic, bloodGroup: bloodGroup, password: password, status: status, serviceType: serviceType, commission: commission }
       });
       if (result) {
+        serviceTypes.forEach(async element => {
+          const resultservice = await prisma.lalasa_servicereq.create({
+            data: { sbId: result.id + "", newService: element + "", reason: "New service request recieved by " + firstName + " " + lastName }
+          });
+        })
         res.json({ "data": result, "message": "Service Boy successfully created.", "success": true })
       } else {
         res.json({ "message": "Oops! An error occurred.", "success": false })
@@ -1957,6 +1963,69 @@ app.delete('/prisma/lalasa/wallet', async (req, res) => {
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/servicereq', async (req, res) => {
+  await executeLatinFunction()
+  var sbId = req.body.sbId
+  var newService = req.body.newService
+  var serviceStatus = req.body.serviceStatus
+  var reason = req.body.reason
+  var newServices = JSON.parse(newService)
+  if (sbId) {
+    var result
+    for (var i = 0; i < newServices.length; i++) {
+      result = await prisma.lalasa_servicereq.create({
+        data: { sbId: sbId, newService: newServices[i] + "", serviceStatus: serviceStatus, reason: reason }
+      });
+    }
+    if (result) {
+      res.json({ "message": "Service successfully created.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/servicereq', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.body.id
+  var serviceStatus = req.body.serviceStatus
+  var reason = req.body.reason
+  if (id && serviceStatus && reason) {
+    const result = await prisma.lalasa_servicereq.update({
+      where: { id: Number(id) },
+      data: { isActive: "0" }
+    });
+    if (result) {
+      const resultUpdate = await prisma.lalasa_servicereq.create({
+        data: { sbId: result.sbId + "", newService: result.newService, serviceStatus: serviceStatus, reason: reason }
+      });
+      res.json({ "message": "Service successfully updated.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/servicereq', async (req, res) => {
+  await executeLatinFunction()
+  var sbId = req.query.sbId
+  var serviceStatus = req.query.serviceStatus
+  var isActive = req.query.isActive
+  const result = await prisma.lalasa_servicereq.findMany({
+    where: { AND: [sbId ? { sbId: sbId + "" } : {}, serviceStatus ? { serviceStatus: serviceStatus + "" } : {}, isActive ? { isActive: isActive + "" } : {}] },
+    orderBy: { id: "desc" }
+  })
+  if (result) {
+    res.json({ "data": result, "message": "Service Request successfully fetched", "success": true });
+  } else {
+    res.json({ "message": "No Service Request found.", "success": false });
   }
 })
 
