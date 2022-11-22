@@ -2010,10 +2010,10 @@ app.post('/prisma/lalasa/servicereq', async (req, res) => {
         var resultUpdate = await prisma.lalasa_servicereq.create({
           data: { sbId: sbId, newService: ele, serviceStatus: serviceStatus, reason: reason }
         });
-        if (resultUpdate) {
-          res.json({ "message": "New service succefully created.", "success": true })
-        }
+
       })
+      res.json({ "message": "New service succefully created.", "success": true })
+
     } else {
       res.json({ "message": "Service already exist.", "success": false })
     }
