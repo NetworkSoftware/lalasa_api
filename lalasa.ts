@@ -9,6 +9,7 @@ import multer from 'multer';
 import fs from 'fs';
 import moment from 'moment-timezone'
 import { type } from 'os'
+import { Json } from 'sequelize/types/lib/utils'
 const excel = require("exceljs");
 const otpGenerator = require('otp-generator')
 
@@ -304,6 +305,27 @@ app.put('/prisma/lalasa/shop', async (req, res) => {
   }
 })
 
+app.put('/prisma/lalasa/approve', async (req, res) => {
+  await executeLatinFunction()
+  var status = req.body.status
+  var id = req.body.id
+  if (id) {
+    const result = await prisma.lalasa_serviceboy.update({
+      where: { id: Number(id) },
+      data: { status: 'complete' }
+    });
+    if (result) {
+      const resultservice = await prisma.lalasa_servicereq.create({
+        data: { sbId: result.id + "", newService: 'Grooming', serviceStatus: 'accepted', isActive: '0', reason: "New service request accepted by Admin " }
+      });
+      res.json({ "message": "Service approve successfully updated.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
 
 app.get('/prisma/lalasa/pet', async (req, res) => {
   await executeLatinFunction()
@@ -1605,7 +1627,7 @@ app.post('/prisma/lalasa/serviceboy', async (req, res) => {
       if (result) {
         serviceTypes.forEach(async element => {
           const resultservice = await prisma.lalasa_servicereq.create({
-            data: { sbId: result.id + "", newService: element + "", reason: "New service request recieved by " + firstName + " " + lastName }
+            data: { sbId: result.id + "", newService: element + "", isActive: "0", reason: "New service request recieved by " + firstName + " " + lastName }
           });
         })
         res.json({ "data": result, "message": "Service Boy successfully created.", "success": true })
@@ -1973,20 +1995,28 @@ app.post('/prisma/lalasa/servicereq', async (req, res) => {
   var serviceStatus = req.body.serviceStatus
   var reason = req.body.reason
   var newServices = JSON.parse(newService)
+  var servicedetails = []
   if (sbId) {
-    var result
-    for (var i = 0; i < newServices.length; i++) {
-      result = await prisma.lalasa_servicereq.create({
-        data: { sbId: sbId, newService: newServices[i] + "", serviceStatus: serviceStatus, reason: reason }
+    await Promise.all(newServices.map(async function (ele) {
+      const result = await prisma.lalasa_servicereq.findFirst({
+        where: { AND: [{ sbId: sbId }, { newService: ele }, { serviceStatus: "opened" }, { isActive: '1' }] },
       });
-    }
-    if (result) {
-      res.json({ "message": "Service successfully created.", "success": true });
+      if (!result) {
+        servicedetails.push(ele)
+      }
+    }))
+    if (servicedetails.length > 0) {
+      servicedetails.map(async function (ele) {
+        var resultUpdate = await prisma.lalasa_servicereq.create({
+          data: { sbId: sbId, newService: ele, serviceStatus: serviceStatus, reason: reason }
+        });
+        if (resultUpdate) {
+          res.json({ "message": "New service succefully created.", "success": true })
+        }
+      })
     } else {
-      res.json({ "message": "Error.", "success": false });
+      res.json({ "message": "Service already exist.", "success": false })
     }
-  } else {
-    res.json({ "message": "Required fields missing", "success": false });
   }
 })
 
@@ -2002,8 +2032,21 @@ app.put('/prisma/lalasa/servicereq', async (req, res) => {
     });
     if (result) {
       const resultUpdate = await prisma.lalasa_servicereq.create({
-        data: { sbId: result.sbId + "", newService: result.newService, serviceStatus: serviceStatus, reason: reason }
+        data: { sbId: result.sbId + "", newService: result.newService, serviceStatus: serviceStatus, reason: reason, isActive: result.isActive }
       });
+      if (serviceStatus == "accepted") {
+        const resultupdate = await prisma.lalasa_serviceboy.findFirst({
+          where: { id: Number(resultUpdate.sbId) }
+        });
+        var servicearr = []
+        servicearr = JSON.parse(resultupdate.serviceType)
+        servicearr.push(result.newService)
+
+        const resultarr = await prisma.lalasa_serviceboy.update({
+          where: { id: Number(resultUpdate.sbId) },
+          data: { serviceType: JSON.stringify(servicearr) }
+        });
+      }
       res.json({ "message": "Service successfully updated.", "success": true });
     } else {
       res.json({ "message": "Error.", "success": false });
