@@ -29,6 +29,7 @@ var transporter = nodemailer.createTransport({
 const subject = "LALASA\nDear *\n\nWelcome to LALASA.\n\nONE STOP. ONE APP \n\nYour one stop location to access all our services from LALASA and many more to come.\n\nYour registration particulars are shown below.\n\nUsername : ** \nRegisters email : # \nOTP : ***\n\nYour password need not be changed. However if you wish to make changes to your password you may do so by selecting “Change Password” option from your app.\n\nA four digit verification code will be sent to your registered email to verify your user credentials, upon successful verification you can change your password.\n\nAll purchases made through the app can be seen under your user profile.\n\nThank you for joining the LALASA community.\n\nSincerely,\n\nTeam LALASA"
 const sbKey = 'AAAAJfJaPz0:APA91bGGT5HqyfpdbeCs4ydceex8RkjaXOKYea2eDEhxAoj-m502UG-cQfpGBuZ-qEvXCPJ1Jl7VBSo22MhKt9Asmi9qIXDFEG-YLQSztaFXtn7LlVgRyiyCWtF0ROktKu3edNHxbtRX'
 const userKey = 'AAAAQqL-5PM:APA91bHicbwlTqR5XA8KomoRwDLchEqBHSeID907UMIJw8xgNbh9wctoL76iyXe9hcFpnqloZYlzfLZvJqVLVJ0ZZAMSdi1pJJ_wHx923gXlfxkVYRPeMu6ZwuBxsLlTrGquzHXhXY9U'
+const vendorKey = 'AAAAk7jsD54:APA91bEuF9RY3XD1A07M1yNEgbSNXU0ZthyU8hCPF8xWTJ3Li3cE4C7EXX-Y8-NTEZrIKmnYhOKtJSUAEBbspQvjJZJVgu1xMZeSdvmd-i1c_u3gDuENA-xs3Cze-pAILRg3fjJuKkQA'
 const prisma = new PrismaClient()
 const app = express()
 
@@ -147,7 +148,7 @@ app.post('/prisma/lalasa/verify_otp', async (req, res) => {
       where: { OR: [{ email: phone }, { phone: phone }] },
     });
     if (result) {
-      res.json({ "message": "otp verified successfully.", "success": true });
+      res.json({ "message": "OTP verified successfully.", "success": true });
     } else {
       res.json({ "message": "User not found.", "success": false });
     }
@@ -331,19 +332,18 @@ app.get('/prisma/lalasa/pet', async (req, res) => {
   await executeLatinFunction()
 
   var shopName = new Map();
-
-  (await prisma.lalasa_shop.findMany()).forEach(element => {
-    shopName.set(element.id + "", element.name)
+  (await prisma.lalasa_vendor.findMany()).forEach(element => {
+    shopName.set(element.id + "", element.companyName)
   });
-  var shopId = req.query.shopId
-  var shop = (shopId.toString().split(","))
+  var vendorId = req.query.vendorId
+  var shop = (vendorId.toString().split(","))
   const result = (await prisma.lalasa_banner.findMany({
-    where: shopId ? { shopId: { in: shop } } : {}
+    where: vendorId ? { vendorId: { in: shop } } : {}
   })).map(function (val, index) {
     return {
-      "id": val.id, "shopId": val.shopId, "image": val.image,
+      "id": val.id, "vendorId": val.vendorId, "image": val.image,
       "title": val.title, "offer": val.offer,
-      "shopName": shopName.has(val.shopId + "") ? shopName.get(val.shopId + "") : "NA"
+      "shopName": shopName.has(val.vendorId + "") ? shopName.get(val.vendorId + "") : "NA"
     }
   });
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
@@ -370,7 +370,7 @@ app.post('/prisma/lalasa/otp', async (req, res) => {
           text: subject.replace('***', otp + "").replace('#', result.email).replace('**', result.name).replace("*", result.name)
         };
         sendmail(mailOptions)
-        res.json({ "otp": result.otp, "message": "otp Sucessfully sent.", "success": true });
+        res.json({ "otp": result.otp, "message": "OTP Sucessfully sent.", "success": true });
       }
     } else {
       res.json({ "message": "User not found.", "success": false });
@@ -438,7 +438,7 @@ app.put('/prisma/lalasa/changepassword', async (req, res) => {
 app.post('/prisma/lalasa/pets', async (req, res) => {
   await executeLatinFunction()
   var name = req.body.name
-  var type = req.body.type
+  var petType = req.body.petType
   var image = req.body.image
   var breed = req.body.breed ? breed = req.body.breed : "Not Specified"
   var dob = req.body.dob ? req.body.dob : "Not Specified"
@@ -453,7 +453,7 @@ app.post('/prisma/lalasa/pets', async (req, res) => {
   var strikePrice = req.body.strikePrice ? req.body.strikePrice : "0"
   var bestSelling = req.body.bestSelling ? req.body.bestSelling : "0"
   var userId = req.body.userId ? req.body.userId : "Not Specified"
-  var shopId = req.body.shopId ? req.body.shopId : "Not Specified"
+  var vendorId = req.body.vendorId ? req.body.vendorId : "Not Specified"
   var isAdopt = req.body.isAdopt ? req.body.isAdopt : "0"
   var category = req.body.category ? req.body.category : "Not Specified"
   var shopType = req.body.shopType ? req.body.shopType : "Not Specified"
@@ -463,15 +463,18 @@ app.post('/prisma/lalasa/pets', async (req, res) => {
   var petAgressive = req.body.petAgressive ? req.body.petAgressive : "Not Specified"
   var priceRange = req.body.priceRange ? req.body.priceRange : "[]"
   var discount = req.body.discount ? req.body.discount : "NA"
-  if (name && type && image && breed && dob && gender && weight && description && freedelivery && rating && offer && age && price && strikePrice && bestSelling && userId && shopId && isAdopt && category && shopType && quantity && pincode) {
+  var serviceCategory = req.body.serviceCategory ? req.body.serviceCategory : "NA"
+  var productCategory = req.body.productCategory ? req.body.productCategory : "NA"
+  var foodType = req.body.foodType ? req.body.foodType : "NA"
+  if (name && petType && image && breed && dob && gender && weight && description && freedelivery && rating && offer && age && price && strikePrice && bestSelling && userId && vendorId && isAdopt && category && shopType && quantity && pincode) {
     const result = await prisma.lalasa_pets.create({
       data: {
-        name: name, type: type, image: image, breed: breed, dob: dob, gender: gender, weight: weight, description: description, freedelivery: freedelivery, rating: rating, offer: offer, age: age, price: price, strikePrice: strikePrice,
-        bestSelling: bestSelling, userId: userId, shopId: shopId, isAdopt: isAdopt, category: category, shopType: shopType, quantity: quantity, pincode: pincode, petSize: petSize, petAgressive: petAgressive, priceRange: priceRange, discount: discount
+        name: name, petType: petType, image: image, breed: breed, dob: dob, gender: gender, weight: weight, description: description, freedelivery: freedelivery, rating: rating, offer: offer, age: age, price: price, strikePrice: strikePrice,
+        bestSelling: bestSelling, userId: userId, vendorId: vendorId, isAdopt: isAdopt, category: category, shopType: shopType, quantity: quantity, pincode: pincode, petSize: petSize, petAgressive: petAgressive, priceRange: priceRange, discount: discount, serviceCategory: serviceCategory, productCategory: productCategory, foodType: foodType
       }
     });
     if (result) {
-      res.json({ "message": "Pet/Product successfully created.", "success": true });
+      res.json({ "message": "Successfully created.", "success": true });
     } else {
       res.json({ "message": "Error.", "success": false });
     }
@@ -483,7 +486,7 @@ app.post('/prisma/lalasa/pets', async (req, res) => {
 app.put('/prisma/lalasa/pets', async (req, res) => {
   await executeLatinFunction()
   var name = req.body.name
-  var type = req.body.type
+  var petType = req.body.petType
   var image = req.body.image
   var breed = req.body.breed ? breed = req.body.breed : "Not Specified"
   var dob = req.body.dob ? req.body.dob : "Not Specified"
@@ -498,7 +501,7 @@ app.put('/prisma/lalasa/pets', async (req, res) => {
   var strikePrice = req.body.strikePrice ? req.body.strikePrice : "0"
   var bestSelling = req.body.bestSelling ? req.body.bestSelling : "0"
   var userId = req.body.userId ? req.body.userId : "Not Specified"
-  var shopId = req.body.shopId ? req.body.shopId : "Not Specified"
+  var vendorId = req.body.vendorId ? req.body.vendorId : "Not Specified"
   var isAdopt = req.body.isAdopt ? req.body.isAdopt : "0"
   var category = req.body.category ? req.body.category : "Not Specified"
   var shopType = req.body.shopType ? req.body.shopType : "Not Specified"
@@ -508,17 +511,20 @@ app.put('/prisma/lalasa/pets', async (req, res) => {
   var petAgressive = req.body.petAgressive ? req.body.petAgressive : "Not Specified"
   var priceRange = req.body.priceRange ? req.body.priceRange : "[]"
   var discount = req.body.discount ? req.body.discount : "NA"
+  var serviceCategory = req.body.serviceCategory ? req.body.serviceCategory : "Not Specified"
+  var productCategory = req.body.productCategory ? req.body.productCategory : "Not Specified"
+  var foodType = req.body.foodType ? req.body.foodType : "Not Specified"
   var id = req.body.id
-  if (name && type && image && breed && dob && gender && weight && description && freedelivery && rating && offer && age && price && strikePrice && bestSelling && userId && shopId && isAdopt && category && shopType && quantity && pincode && id) {
+  if (name && petType && image && breed && dob && gender && weight && description && freedelivery && rating && offer && age && price && strikePrice && bestSelling && userId && vendorId && isAdopt && category && shopType && quantity && pincode && id) {
     const result = await prisma.lalasa_pets.update({
       where: { id: Number(id) },
       data: {
-        name: name, type: type, image: image, breed: breed, dob: dob, gender: gender, weight: weight, description: description, freedelivery: freedelivery, rating: rating, offer: offer, age: age, price: price, strikePrice: strikePrice,
-        bestSelling: bestSelling, userId: userId, shopId: shopId, isAdopt: isAdopt, category: category, shopType: shopType, quantity: quantity, pincode: pincode, petSize: petSize, petAgressive: petAgressive, priceRange: priceRange, discount: discount
+        name: name, petType: petType, image: image, breed: breed, dob: dob, gender: gender, weight: weight, description: description, freedelivery: freedelivery, rating: rating, offer: offer, age: age, price: price, strikePrice: strikePrice,
+        bestSelling: bestSelling, userId: userId, vendorId: vendorId, isAdopt: isAdopt, category: category, shopType: shopType, quantity: quantity, pincode: pincode, petSize: petSize, petAgressive: petAgressive, priceRange: priceRange, discount: discount, serviceCategory: serviceCategory, productCategory: productCategory, foodType: foodType
       }
     });
     if (result) {
-      res.json({ "message": "Pet/Product successfully updated.", "success": true });
+      res.json({ "message": "Successfully updated.", "success": true });
     } else {
       res.json({ "message": "Error.", "success": false });
     }
@@ -533,7 +539,7 @@ app.get('/prisma/lalasa/pets', async (req, res) => {
   var isAdopt = req.query.isAdopt
   var bestSelling = req.query.bestSelling
   var shopping = req.query.shopping
-  var shopId = req.query.shopId
+  var vendorId = req.query.vendorId
   var shopType = req.query.shopType
   var user = req.query.user
   var pincode = req.query.pincode
@@ -542,7 +548,7 @@ app.get('/prisma/lalasa/pets', async (req, res) => {
     var shopIds = (ids.toString().split(","))
   }
   const result = await prisma.lalasa_pets.findMany({
-    where: { AND: [isAdopt ? { isAdopt: isAdopt + "" } : {}, userId ? { userId: { not: userId + "" } } : {}, user ? { userId: user + "" } : {}, bestSelling ? { bestSelling: bestSelling + "" } : {}, shopping ? { shopType: shopping + "" } : {}, shopId ? { shopId: shopId + "" } : {}, shopType ? { shopType: shopType + "" } : {}, ids ? { shopId: { in: shopIds } } : {}, pincode ? { pincode: pincode + "" } : {}] },
+    where: { AND: [isAdopt ? { isAdopt: isAdopt + "" } : {}, userId ? { userId: { not: userId + "" } } : {}, user ? { userId: user + "" } : {}, bestSelling ? { bestSelling: bestSelling + "" } : {}, shopping ? { shopType: shopping + "" } : {}, vendorId ? { vendorId: vendorId + "" } : {}, shopType ? { shopType: shopType + "" } : {}, ids ? { vendorId: { in: shopIds } } : {}, pincode ? { pincode: pincode + "" } : {}] },
     orderBy: { id: "desc" }
   })
   if (result) {
@@ -556,10 +562,10 @@ app.get('/prisma/lalasa/partner_get', async (req, res) => {
   await executeLatinFunction()
   var userId = req.query.userId
   var gender = req.query.gender
-  var type = req.query.type
+  var petType = req.query.petType
   const result = await prisma.lalasa_pets.findMany({
     where: {
-      AND: [{ userId: { not: userId + "" } }, { shopType: "Pet" }, { gender: { not: gender + "" } }, { type: type + "" }]
+      AND: [{ userId: { not: userId + "" } }, { shopType: "Pet" }, { gender: { not: gender + "" } }, { petType: petType + "" }]
     }
   })
   if (result) {
@@ -588,13 +594,13 @@ app.delete('/prisma/lalasa/pets', async (req, res) => {
 
 app.post('/prisma/lalasa/banner', async (req, res) => {
   await executeLatinFunction()
-  var shopId = req.body.shopId
+  var vendorId = req.body.vendorId
   var image = req.body.image
   var title = req.body.title
   var offer = req.body.offer
-  if (image && title && offer) {
+  if (image && title && offer && vendorId) {
     const result = await prisma.lalasa_banner.create({
-      data: { image: image, title: title, offer: offer, shopId: shopId }
+      data: { image: image, title: title, offer: offer, vendorId: vendorId }
     });
     if (result) {
       res.json({ "message": "Banner successfully created.", "success": true })
@@ -610,19 +616,18 @@ app.get('/prisma/lalasa/banner', async (req, res) => {
   await executeLatinFunction()
 
   var shopName = new Map();
-
-  (await prisma.lalasa_shop.findMany()).forEach(element => {
-    shopName.set(element.id + "", element.name)
+  (await prisma.lalasa_vendor.findMany()).forEach(element => {
+    shopName.set(element.id + "", element.companyName)
   });
-  var shopId = req.query.shopId
-  var shop = (shopId.toString().split(","))
+  var vendorId = req.query.vendorId
+  var shop = vendorId ? (vendorId.toString().split(",")) : []
   const result = (await prisma.lalasa_banner.findMany({
-    where: shopId ? { shopId: { in: shop } } : {}
+    where: vendorId ? { vendorId: { in: shop } } : {}
   })).map(function (val, index) {
     return {
-      "id": val.id, "shopId": val.shopId, "image": val.image,
+      "id": val.id, "vendorId": val.vendorId, "image": val.image,
       "title": val.title, "offer": val.offer,
-      "shopName": shopName.has(val.shopId + "") ? shopName.get(val.shopId + "") : "NA"
+      "shopName": shopName.has(val.vendorId + "") ? shopName.get(val.vendorId + "") : "NA"
     }
   });
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
@@ -812,14 +817,14 @@ app.post('/prisma/lalasa/order', async (req, res) => {
   var orderItems = req.body.orderItems ? req.body.orderItems : "1"
   var reason = req.body.reason
   var paymentId = req.body.paymentId
-  var assignShop = req.body.assignShop ? req.body.assignShop : "Not Specified"
+  var assignVendor = req.body.assignVendor ? req.body.assignVendor : "Not Specified"
   var items = req.body.items
   var sbId = req.body.sbId ? req.body.sbId : "NA"
   if (userId && petId && price && serviceType && date && address && payMethods && promoCode && offerAmt && subTotal && shippingFee && tax && grandTotal && review && rating && orderType && status && paymentId && reason && items) {
     const result = await prisma.lalasa_order.create({
       data: {
         userId: userId, petId: petId, price: price, serviceType: serviceType, date: date, time: time, address: address, payMethods: payMethods, promoCode: promoCode, offerAmt: offerAmt, reason: reason,
-        subTotal: subTotal, shippingFee: shippingFee, tax: tax, grandTotal: grandTotal, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignShop: assignShop, items: items, sbId: sbId
+        subTotal: subTotal, shippingFee: shippingFee, tax: tax, grandTotal: grandTotal, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignVendor: assignVendor, items: items, sbId: sbId
       }
     });
     var orderId = String(result.id);
@@ -827,7 +832,10 @@ app.post('/prisma/lalasa/order', async (req, res) => {
       data: { orderId: orderId, status: "ordered", orderItems: orderItems, description: reason }
     })
     if (result) {
-      if (orderType == "Grooming") {
+      const resultUser = await prisma.lalasa_user.findFirst({ where: { id: Number(userId) } })
+      if (assignVendor != "NA" && assignVendor != "Not Specified") {
+        pushNotification(resultUser.name, "New order available", null, "key=" + vendorKey, '/topics/allDevices_' + assignVendor)
+      } else if (orderType == "Grooming") {
         var metadata = { "id": result.id, "orderType": result.orderType, "status": "ordered" }
         pushNotification(orderType + ' Service', "New Service available", metadata, "key=" + sbKey, '/topics/allDevices')
       }
@@ -917,6 +925,62 @@ app.put('/prisma/lalasa/assign_service', async (req, res) => {
   }
 })
 
+app.put('/prisma/lalasa/assign_vendor', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.body.vendorId
+  var status = req.body.status
+  var orderId = req.body.orderId
+  var serviceCost = req.body.serviceCost
+  var commission = req.body.commission
+  var payMode = req.body.payMode
+  var serviceType = req.body.serviceType
+  var isNotify = req.body.isNotify
+  var reason = req.body.reason
+  if (vendorId && orderId && status) {
+    const result = await prisma.lalasa_order.updateMany({
+      where: { id: Number(orderId) },
+      data: { assignVendor: vendorId, status: status, reason: reason }
+    });
+    if (result) {
+      const resultupdate = await prisma.lalasa_order.findFirst({
+        where: { id: Number(orderId) },
+        orderBy: { id: 'desc' }
+      });
+      if (status != "completed" && isNotify == null) {
+        var metadata = { "id": resultupdate.id, "orderType": resultupdate.orderType, "status": "progress" }
+        pushNotification(resultupdate.orderType + ' Service', "Service assigned by Admin", metadata, "key=" + sbKey, '/topics/allDevices_' + resultupdate.sbId)
+      } else if (status == "completed") {
+        await prisma.lalasa_order.update({
+          where: { id: Number(orderId) },
+          data: { serviceCost: Number(serviceCost), commission: commission }
+        });
+        if (payMode == "ONLINE") {
+          await prisma.lalasa_vendor.update({
+            where: { id: Number(vendorId) },
+            data: { wallet: { increment: Number(serviceCost) } }
+          });
+          await prisma.lalasa_vendor_wallet.create({
+            data: { vendorId: vendorId, operation: "add", serviceAmt: Number(serviceCost), payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+          })
+        } else {
+          await prisma.lalasa_vendor.update({
+            where: { id: Number(vendorId) },
+            data: { wallet: { decrement: Number(commission) } }
+          });
+          await prisma.lalasa_vendor_wallet.create({
+            data: { vendorId: vendorId, operation: "minus", serviceAmt: Number(serviceCost), payMode: payMode, serviceType: serviceType, reason: "For this service id #" + "" + orderId }
+          })
+        }
+      }
+      res.json({ "message": "Vendor status successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
 app.get('/prisma/lalasa/getorder', async (req, res) => {
   await executeLatinFunction()
   var orderType = req.query.orderType
@@ -941,6 +1005,37 @@ app.get('/prisma/lalasa/getorder', async (req, res) => {
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
 })
 
+app.get('/prisma/lalasa/vendor_getorder', async (req, res) => {
+  await executeLatinFunction()
+  var orderType = req.query.orderType
+  var status = req.query.status
+  var vendorId = req.query.vendorId
+  var result
+  var showDate = req.query.showDate
+  let dateInMyTimeZone
+  if (showDate != "All") {
+    var date = new Date(showDate + "")
+    var cuarrentdate = moment.tz(date, "MST").format()
+    dateInMyTimeZone = moment.tz(cuarrentdate, "Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss");
+  }
+  // if (status == "progress") {
+  //   result = await prisma.lalasa_order.findMany({
+  //     where:
+  //       status == "progress" ? { AND: [{ NOT: [{ status: "ordered" }, { status: "completed" }, { status: "cancelled" }] }, { assignVendor: vendorId + "" }] } : {},
+  //     orderBy: { id: 'desc' }
+  //   });
+  // } else {
+  result = await prisma.lalasa_order.findMany({
+    where: {
+      AND: [orderType ? { orderType: orderType + "" } : {}, status && status == "progress" ? { AND: [{ NOT: [{ status: "ordered" }, { status: "completed" }, { status: "cancelled" }] }, { assignVendor: vendorId + "" }] } : { status: status + "" }, vendorId ? { assignVendor: vendorId + "" } : {}, showDate && showDate != 'ALL' ? { createdOn: { gte: new Date(dateInMyTimeZone) } } : {}
+      ]
+    },
+    orderBy: { id: 'desc' }
+  });
+  // }
+  res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
+})
+
 app.get('/prisma/lalasa/order', async (req, res) => {
   await executeLatinFunction()
 
@@ -960,8 +1055,8 @@ app.get('/prisma/lalasa/order', async (req, res) => {
     petName.set(element.id + "", element.name)
   });
 
-  (await prisma.lalasa_shop.findMany()).forEach(element => {
-    shopName.set(element.id + "", element.name)
+  (await prisma.lalasa_vendor.findMany()).forEach(element => {
+    shopName.set(element.id + "", element.companyName)
   });
 
   (await prisma.lalasa_address.findMany()).forEach(element => {
@@ -972,11 +1067,12 @@ app.get('/prisma/lalasa/order', async (req, res) => {
     sbName.set(element.id + "", element.firstName)
   });
 
-  var assignShop = req.query.assignShop
+  var assignVendor = req.query.assignVendor
   var orderType = req.query.orderType
   var userId = req.query.userId
+  var status = req.query.status
   const result = await Promise.all(await (await prisma.lalasa_order.findMany({
-    where: { AND: [assignShop && assignShop != "All" ? { assignShop: assignShop + "" } : {}, orderType ? { orderType: orderType + "" } : {}, , userId ? { userId: userId + "" } : {}] },
+    where: { AND: [assignVendor && assignVendor != "All" ? { assignVendor: assignVendor + "" } : {}, orderType ? { orderType: orderType + "" } : {}, userId ? { userId: userId + "" } : {}, status ? { status: status + "" } : {}] },
     orderBy: { id: "desc" }
   })).map(async function (val, index) {
 
@@ -989,11 +1085,11 @@ app.get('/prisma/lalasa/order', async (req, res) => {
       "price": val.price, "serviceType": val.serviceType, "date": val.date, "time": val.time,
       "address": val.address, "payMethods": val.payMethods, "promoCode": val.promoCode,
       "offerAmt": val.offerAmt, "subTotal": val.subTotal, "shippingFee": val.shippingFee, "tax": val.tax, "paymentId": val.paymentId, "reason": val.reason, "items": val.items, "sbId": val.sbId,
-      "grandTotal": val.grandTotal, "assignShop": val.assignShop, "review": val.review, "rating": val.rating, "orderType": val.orderType, "status": val.status, "createdOn": val.createdOn,
+      "grandTotal": val.grandTotal, "assignVendor": val.assignVendor, "review": val.review, "rating": val.rating, "orderType": val.orderType, "status": val.status, "createdOn": val.createdOn,
       "UserName": UserName.has(val.userId) ? UserName.get(val.userId) : "NA",
       "UserPhone": UserPhone.has(val.userId) ? UserPhone.get(val.userId) : "NA",
       "petName": petName.has(val.petId + "") ? petName.get(val.petId + "") : "NA",
-      "shopName": shopName.has(val.assignShop + "") ? shopName.get(val.assignShop + "") : "NA",
+      "companyName": shopName.has(val.assignVendor + "") ? shopName.get(val.assignVendor + "") : "NA",
       "addressName": addressName.has(val.address + "") ? addressName.get(val.address + "") : "NA",
       "serviceboyName": sbName.has(val.sbId + "") ? sbName.get(val.sbId + "") : "NA",
       "trackOrder": resultUpdate
@@ -1013,10 +1109,10 @@ app.get('/prisma/lalasa/order_report', async (req, res) => {
   var Veterinarian = 0;
   var Restaurant = 0;
   var Pet = 0;
-  var userId = req.query.userId
+  var assignVendor = req.query.assignVendor
 
   const result = (await prisma.lalasa_order.findMany({
-    where: userId ? { assignShop: userId + "" } : {},
+    where: assignVendor ? { assignVendor: assignVendor + "" } : {},
     orderBy: { id: "desc" }
   })).map(async function (val, index) {
     if (val.orderType == 'Adoption') {
@@ -1055,7 +1151,7 @@ app.get('/prisma/lalasa/product_report', async (req, res) => {
   var Restaurant = 0;
   var userId = req.query.userId
   const result = (await prisma.lalasa_pets.findMany({
-    where: userId ? { shopId: userId + "" } : {},
+    where: userId ? { vendorId: userId + "" } : {},
     orderBy: { id: "desc" }
   })).map(async function (val, index) {
     if (val.shopType == 'Adoption') {
@@ -1121,6 +1217,72 @@ app.get('/prisma/lalasa/order_count', async (req, res) => {
   res.json({
     "ordered": ordered + '', "delivered": delivered + '', "shipped": shipped + '', "cancelled": cancelled + '', "completed": completed + '', "sbassigned": sbassigned + '',
     "totalorder": result.length + '', "message": "Sucessfully Fetched.", "success": true
+  });
+})
+
+app.get('/prisma/lalasa/vendor_order_count', async (req, res) => {
+  await executeLatinFunction()
+  var ordered = 0;
+  var delivered = 0;
+  var shipped = 0;
+  var cancelled = 0;
+  var sbassigned = 0;
+  var completed = 0;
+  var sbId = req.query.sbId
+  var orderType = req.query.orderType
+  var vendorId = req.query.vendorId
+  const resultOrder = (await prisma.lalasa_order.findMany({
+    where: { AND: [vendorId ? { assignVendor: vendorId + "" } : {}, orderType ? { orderType: orderType + "" } : {}] },
+    orderBy: { id: "desc" }
+  })).map(async function (val, index) {
+    if (val.status == 'ordered') {
+      ordered += 1
+    }
+    return {
+
+    }
+  });
+
+  const result = (await prisma.lalasa_order.findMany({
+    where: { AND: [sbId ? { sbId: sbId + "" } : {}, orderType ? { orderType: orderType + "" } : {}, vendorId ? { assignVendor: vendorId + "" } : {}] },
+    orderBy: { id: "desc" }
+  })).map(async function (val, index) {
+    if (val.status == 'delivered') {
+      delivered++;
+    } else if (val.status == 'shipped') {
+      shipped++;
+    } else if (val.status == 'cancelled') {
+      cancelled++;
+    } else if (val.status == 'service boy assigned') {
+      sbassigned++;
+    } else if (val.status == 'completed') {
+      completed++;
+    }
+    return {
+
+    }
+  });
+  var fromdate = new Date();
+  var todate = new Date();
+  fromdate.setDate(fromdate.getDate() - 1);
+  todate.setDate(todate.getDate() + 1);
+  const todayresult = await prisma.lalasa_vendor_wallet.aggregate({
+    where: { AND: [{ vendorId: vendorId + "" }, { createdOn: { gt: fromdate } }, { createdOn: { lt: todate } }] },
+    _sum: { serviceAmt: true }
+  })
+
+  const totalresult = await prisma.lalasa_vendor_wallet.aggregate({
+    where: { vendorId: vendorId + "" },
+    _sum: { serviceAmt: true }
+  })
+
+  const resultupdate = await prisma.lalasa_vendor.findFirst({
+    where: { id: Number(vendorId) },
+    orderBy: { id: "desc" }
+  })
+  res.json({
+    "ordered": ordered + '', "delivered": delivered + '', "shipped": shipped + '', "cancelled": cancelled + '', "completed": completed + '', "sbassigned": sbassigned + '',
+    "totalorder": result.length + '', "todayEarn": todayresult._sum.serviceAmt ? todayresult._sum.serviceAmt : 0, "totalEarn": totalresult._sum.serviceAmt ? totalresult._sum.serviceAmt : 0, "totalAmount": resultupdate.wallet, "message": "Sucessfully Fetched.", "success": true
   });
 })
 
@@ -1231,12 +1393,12 @@ app.put('/prisma/lalasa/shop_update', async (req, res) => {
 app.put('/prisma/lalasa/assign_shop', async (req, res) => {
   await executeLatinFunction()
   var id = req.body.id
-  var assignShop = req.body.assignShop
+  var assignVendor = req.body.assignVendor
   var status = req.body.status
-  if (id && assignShop) {
+  if (id && assignVendor) {
     const result = await prisma.lalasa_order.update({
       where: { id: Number(id) },
-      data: { assignShop: assignShop, status: status, reason: status + " " + "by admin" }
+      data: { assignVendor: assignVendor, status: status, reason: status + " " + "by admin" }
     });
     const resultUpdate = await prisma.track_order.create({
       data: { orderId: id, status: status, description: status + " " + "by admin" }
@@ -1266,10 +1428,10 @@ app.get('/prisma/lalasa/shop', async (req, res) => {
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
 })
 
-app.post('/prisma/lalasa/fetchShopByIds', async (req, res) => {
+app.post('/prisma/lalasa/fetchVendorByIds', async (req, res) => {
   await executeLatinFunction()
   var id = req.body.id
-  const result = await prisma.lalasa_shop.findMany({
+  const result = await prisma.lalasa_vendor.findMany({
     where: { id: { in: id } }
   });
   res.json({ "data": result, "success": true, "message": "Successfully Fetched." });
@@ -1305,10 +1467,10 @@ app.post('/prisma/lalasa/coupon', async (req, res) => {
   var maxNumber = req.body.maxNumber ? req.body.maxNumber : "1"
   var minOrder = req.body.minOrder ? req.body.minOrder : "100"
   var offerType = req.body.offerType
-  var shopId = req.body.shopId
-  if (offercode && description && title && isPercent && value && status && maxNumber && minOrder && offerType && shopId) {
+  var vendorId = req.body.vendorId
+  if (offercode && description && title && isPercent && value && status && maxNumber && minOrder && offerType && vendorId) {
     const result = await prisma.lalasa_coupon.create({
-      data: { offercode: offercode, description: description, title: title, isPercent: isPercent, value: value, status: status, maxNumber: maxNumber, minOrder: minOrder, offerType: offerType, shopId: shopId }
+      data: { offercode: offercode, description: description, title: title, isPercent: isPercent, value: value, status: status, maxNumber: maxNumber, minOrder: minOrder, offerType: offerType, vendorId: vendorId }
     });
     if (result) {
       res.json({ "message": "Coupon successfully created.", "success": true })
@@ -1332,12 +1494,12 @@ app.put('/prisma/lalasa/coupon', async (req, res) => {
   var maxNumber = req.body.maxNumber ? req.body.maxNumber : "1"
   var minOrder = req.body.minOrder ? req.body.minOrder : "100"
   var offerType = req.body.offerType
-  var shopId = req.body.shopId
+  var vendorId = req.body.vendorId
 
-  if (id && offercode && description && title && isPercent && value && status && maxNumber && minOrder && offerType && shopId) {
+  if (id && offercode && description && title && isPercent && value && status && maxNumber && minOrder && offerType && vendorId) {
     const result = await prisma.lalasa_coupon.updateMany({
       where: { id: Number(id) },
-      data: { offercode: offercode, description: description, title: title, isPercent: isPercent, value: value, status: status, maxNumber: maxNumber, minOrder: minOrder, offerType: offerType, shopId: shopId }
+      data: { offercode: offercode, description: description, title: title, isPercent: isPercent, value: value, status: status, maxNumber: maxNumber, minOrder: minOrder, offerType: offerType, vendorId: vendorId }
     });
     if (result) {
       res.json({ "message": "Coupon successfully updated.", "success": true });
@@ -1364,7 +1526,7 @@ app.get('/prisma/lalasa/getcoupon', async (req, res) => {
       if (resultOrder >= Number(result.maxNumber)) {
         res.json({ "message": "Coupon already used.", "success": false });
       } else {
-        res.json({ "offerType": result.offerType, "offercode": result.offercode, "value": result.value, "isPercent": result.isPercent, "miniorder": result.minOrder, "maxNumber": result.maxNumber, "shopId": result.shopId, "message": "Congrats, Successfully Applied.", "success": true });
+        res.json({ "offerType": result.offerType, "offercode": result.offercode, "value": result.value, "isPercent": result.isPercent, "miniorder": result.minOrder, "maxNumber": result.maxNumber, "vendorId": result.vendorId, "message": "Congrats, Successfully Applied.", "success": true });
       }
     } else {
       res.json({ "message": "Coupon Not valid.", "success": false });
@@ -1377,21 +1539,21 @@ app.get('/prisma/lalasa/coupon', async (req, res) => {
 
   var shopName = new Map();
 
-  (await prisma.lalasa_shop.findMany()).forEach(element => {
-    shopName.set(element.id + "", element.name)
+  (await prisma.lalasa_vendor.findMany()).forEach(element => {
+    shopName.set(element.id + "", element.companyName)
   });
 
-  var shopId = req.query.shopId
-  var shop = (shopId.toString().split(","))
+  var vendorId = req.query.vendorId
+  var shop = (vendorId.toString().split(","))
   const result = (await prisma.lalasa_coupon.findMany({
-    where: shopId && shopId != "All" ? { shopId: { in: shop } } : {},
+    where: vendorId && vendorId != "All" ? { vendorId: { in: shop } } : {},
     orderBy: { id: "desc" }
   })).map(function (val, index) {
     return {
       "id": val.id, "offercode": val.offercode, "description": val.description,
       "title": val.title, "isPercent": val.isPercent, "value": val.value, "status": val.status,
-      "maxNumber": val.maxNumber, "minOrder": val.minOrder, "offerType": val.offerType, "shopId": val.shopId,
-      "createdOn": val.createdOn, "shopName": shopName.has(val.shopId + "") ? shopName.get(val.shopId + "") : "NA"
+      "maxNumber": val.maxNumber, "minOrder": val.minOrder, "offerType": val.offerType, "vendorId": val.vendorId,
+      "createdOn": val.createdOn, "companyName": shopName.has(val.vendorId + "") ? shopName.get(val.vendorId + "") : "NA"
     }
   });
   res.json({ "data": result, "message": "Sucessfully Fetched.", "success": true });
@@ -1988,6 +2150,87 @@ app.delete('/prisma/lalasa/wallet', async (req, res) => {
   }
 })
 
+app.post('/prisma/lalasa/vendor_wallet', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.body.vendorId
+  var operation = req.body.operation
+  var serviceAmt = req.body.serviceAmt
+  var payMode = req.body.payMode
+  var serviceType = req.body.serviceType
+  var reason = req.body.reason ? req.body.reason : "NA"
+  if (vendorId && operation && serviceAmt && payMode && serviceType) {
+    const result = await prisma.lalasa_vendor_wallet.create({
+      data: { vendorId: vendorId, operation: operation, serviceAmt: Number(serviceAmt), payMode: payMode, serviceType: serviceType, reason: reason }
+    });
+    if (result) {
+      const resultupdate = await prisma.lalasa_vendor.update({
+        where: { id: Number(vendorId) },
+        data: operation == 'add' ? { wallet: { increment: Number(serviceAmt) } } : { wallet: { decrement: Number(serviceAmt) } }
+      });
+      res.json({ "data": result, "message": "Vendor wallet successfully created.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/vendor_wallet', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.body.id
+  var vendorId = req.body.vendorId
+  var operation = req.body.operation
+  var serviceAmt = req.body.serviceAmt
+  var payMode = req.body.payMode
+  var serviceType = req.body.serviceType
+  var reason = req.body.reason
+  if (id && vendorId && operation && serviceAmt && payMode && serviceType) {
+    const result = await prisma.lalasa_vendor_wallet.updateMany({
+      where: { id: Number(id) },
+      data: { vendorId: vendorId, operation: operation, serviceAmt: Number(serviceAmt), payMode: payMode, serviceType: serviceType, reason: reason }
+    });
+    if (result) {
+      res.json({ "message": "Vendor wallet successfully updated.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/vendor_wallet', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.query.vendorId
+  const result = await prisma.lalasa_vendor_wallet.findMany({
+    where: vendorId ? { vendorId: vendorId + "" } : {},
+    orderBy: { id: "desc" }
+  })
+  if (result) {
+    res.json({ "data": result, "message": "wallet successfully fetched", "success": true });
+  } else {
+    res.json({ "message": "No wallet found.", "success": false });
+  }
+})
+
+app.delete('/prisma/lalasa/vendor_wallet', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  if (id) {
+    const result = await prisma.lalasa_vendor_wallet.delete({
+      where: { id: Number(id) }
+    });
+    if (result) {
+      res.json({ "message": "Wallet successfully deleted.", "success": true });
+    } else {
+      res.json({ "message": "No wallet found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
 app.post('/prisma/lalasa/servicereq', async (req, res) => {
   await executeLatinFunction()
   var sbId = req.body.sbId
@@ -2065,7 +2308,7 @@ app.get('/prisma/lalasa/servicereq', async (req, res) => {
     where: { AND: [sbId ? { sbId: sbId + "" } : {}, serviceStatus ? { serviceStatus: serviceStatus + "" } : {}, isActive ? { isActive: isActive + "" } : {}] },
     orderBy: { id: "desc" }
   })
-  if (result) {
+  if (result.length > 0) {
     res.json({ "data": result, "message": "Service Request successfully fetched", "success": true });
   } else {
     res.json({ "message": "No Service Request found.", "success": false });
@@ -2137,6 +2380,356 @@ app.delete('/prisma/lalasa/notify', async (req, res) => {
       res.json({ "message": "Notify successfully deleted.", "success": true });
     } else {
       res.json({ "message": "No Notify found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/vendor_register', async (req, res) => {
+  await executeLatinFunction()
+  var firstName = req.body.firstName
+  var lastName = req.body.lastName
+  var phone = req.body.phone
+  var personalMail = req.body.personalMail
+  var serviceCategory = req.body.serviceCategory
+  var productCategory = req.body.productCategory
+  var password = req.body.password
+  var companyName = req.body.companyName ? req.body.companyName : "NA"
+  var companyMail = req.body.companyMail ? req.body.companyMail : "NA"
+  var companyPhone = req.body.companyPhone ? req.body.companyPhone : "NA"
+  var companyAddress = req.body.companyAddress ? req.body.companyAddress : "NA"
+  var companyLogo = req.body.companyLogo ? req.body.companyLogo : "NA"
+  var establishmentType = req.body.establishmentType ? req.body.establishmentType : "NA"
+  var gstin = req.body.gstin ? req.body.gstin : "NA"
+  var fssai = req.body.fssai ? req.body.fssai : "NA"
+  var pictures = req.body.pictures ? req.body.pictures : "[]"
+  var latitude = req.body.latitude ? req.body.latitude : "0"
+  var longitude = req.body.longitude ? req.body.longitude : "0"
+  var pincode = req.body.pincode ? req.body.pincode : "0"
+  var otp = Math.floor(1000 + Math.random() * 9000);
+  if (firstName && lastName && phone && personalMail && serviceCategory && productCategory && password) {
+    const resultUser = await prisma.lalasa_vendor.findFirst({
+      where: { AND: [{ phone: phone }, { personalMail: personalMail }] }
+    });
+    if (!resultUser) {
+      const authkey = require('crypto').randomBytes(16).toString('hex')
+      const result = await prisma.lalasa_vendor.create({
+        data: { firstName: firstName, lastName: lastName, phone: phone, personalMail: personalMail, serviceCategory: serviceCategory, productCategory: productCategory, password: password, otp: otp + "", auth_key: authkey, companyName: companyName, companyMail: companyMail, companyPhone: companyPhone, companyAddress: companyAddress, companyLogo: companyLogo, establishmentType: establishmentType, gstin: gstin, fssai: fssai, pictures: pictures, latitude: latitude, longitude: longitude, pincode: pincode }
+      });
+      if (result) {
+        var mailOptions = {
+          from: 'networksoftwaresolution@gmail.com',
+          to: result.personalMail,
+          subject: "Welcome to LALASA",
+          text: subject.replace('***', otp + "").replace('#', result.personalMail).replace('**', result.firstName).replace("*", result.firstName)
+        };
+        sendmail(mailOptions)
+        res.json({ "data": result, "message": "Vendor successfully created, OTP sent to the email.", "success": true })
+      } else {
+        res.json({ "message": "Oops! An error occurred.", "success": false })
+      }
+    } else {
+      res.json({ "message": "Phone Number already taken. Existing User", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/vendor_login', async (req, res) => {
+  await executeLatinFunction()
+  var phone = req.body.phone
+  var password = req.body.password
+  if (phone && password) {
+    const result = await prisma.lalasa_vendor.findFirst({
+      where: { AND: [{ OR: [{ phone: phone }, { personalMail: phone }] }, { password: password }, { isDelete: "1" }] }
+    });
+    if (result) {
+      const authkey = require('crypto').randomBytes(16).toString('hex')
+      const resultUser = await prisma.lalasa_vendor.update({
+        where: { id: Number(result.id) },
+        data: { auth_key: authkey }
+      });
+      if (result) {
+        res.json({ "data": result, "message": "Welcome to LALASA.", "success": true });
+      } else {
+        res.json({ "message": "Oops! An error occurred.", "success": false })
+      }
+    } else {
+      res.json({ "message": "Invalid Password ", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/vendor_verify_otp', async (req, res) => {
+  await executeLatinFunction()
+  var phone = req.body.phone
+  var otp = req.body.otp
+  if (phone && otp) {
+    const result = await prisma.lalasa_vendor.findFirst({
+      where: { OR: [{ personalMail: phone }, { phone: phone }] },
+    });
+    if (result) {
+      const resultUpdate = await prisma.lalasa_vendor.update({
+        where: { id: Number(result.id) },
+        data: { status: "verified" }
+      });
+      res.json({ "status": resultUpdate.status, "message": "OTP verified successfully.", "success": true });
+    } else {
+      res.json({ "message": "Vendor not found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/vendor_otp', async (req, res) => {
+  await executeLatinFunction()
+  var phone = req.body.phone
+  var otp = Math.floor(1000 + Math.random() * 9000);
+  if (phone) {
+    const result = await prisma.lalasa_vendor.findFirst({
+      where: { OR: [{ phone: phone }, { personalMail: phone }] },
+    });
+    if (result) {
+      const resultUpdate = await prisma.lalasa_vendor.updateMany({
+        where: { OR: [{ phone: phone }, { personalMail: phone }] },
+        data: { otp: otp + "" }
+      });
+      if (result) {
+        var mailOptions = {
+          from: 'networksoftwaresolution@gmail.com',
+          to: result.personalMail,
+          subject: "Welcome to LALASA",
+          text: subject.replace('***', otp + "").replace('#', result.personalMail).replace('**', result.firstName).replace("*", result.firstName)
+        };
+        sendmail(mailOptions)
+        res.json({ "otp": result.otp, "message": "OTP Sucessfully sent to the email.", "success": true });
+      }
+    } else {
+      res.json({ "message": "Vendor not found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/vendor_reset_password', async (req, res) => {
+  await executeLatinFunction()
+  var newpw = req.body.newpw
+  var phone = req.body.phone
+  var otp = req.body.otp
+  if (newpw && phone && otp) {
+    const result = await prisma.lalasa_vendor.findFirst({
+      where: { AND: [{ OR: [{ phone: phone }, { personalMail: phone }] }, { otp: otp }] },
+    })
+    if (result) {
+      const resultNew = await prisma.lalasa_vendor.updateMany({
+        where: { OR: [{ phone: phone }, { personalMail: phone }] },
+        data: { password: newpw, otp: otp }
+      });
+      if (resultNew) {
+        res.json({ "message": "Password Change Sucessfully.", "success": true });
+      } else {
+        res.json({ "message": "Oops! An error occurred.", "success": false });
+      }
+    } else {
+      res.json({ "message": "No vendor Exsists.", "success": false });
+    }
+  }
+})
+
+app.put('/prisma/lalasa/vendor', async (req, res) => {
+  await executeLatinFunction()
+  var companyName = req.body.companyName
+  var companyMail = req.body.companyMail
+  var companyPhone = req.body.companyPhone
+  var companyAddress = req.body.companyAddress
+  var companyLogo = req.body.companyLogo
+  var establishmentType = req.body.establishmentType
+  var gstin = req.body.gstin
+  var fssai = req.body.fssai
+  var pictures = req.body.pictures
+  var terms = req.body.terms
+  var latitude = req.body.latitude
+  var longitude = req.body.longitude
+  var pincode = req.body.pincode
+  var id = req.body.id
+  if (companyName && companyMail && companyPhone && companyAddress && companyLogo && establishmentType && gstin && fssai && pictures && id) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(id) },
+      data: { companyName: companyName, companyMail: companyMail, companyPhone: companyPhone, companyAddress: companyAddress, companyLogo: companyLogo, establishmentType: establishmentType, gstin: gstin, fssai: fssai, pictures: pictures, terms: terms, latitude: latitude, longitude: longitude, pincode: pincode, status: "completed" }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Vendor successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/vendor_profile', async (req, res) => {
+  await executeLatinFunction()
+  var firstName = req.body.firstName
+  var lastName = req.body.lastName
+  var phone = req.body.phone
+  var personalMail = req.body.personalMail
+  var serviceCategory = req.body.serviceCategory
+  var productCategory = req.body.productCategory
+  var companyName = req.body.companyName
+  var companyMail = req.body.companyMail
+  var companyPhone = req.body.companyPhone
+  var companyAddress = req.body.companyAddress
+  var companyLogo = req.body.companyLogo
+  var establishmentType = req.body.establishmentType
+  var gstin = req.body.gstin
+  var fssai = req.body.fssai
+  var pictures = req.body.pictures
+  var terms = req.body.terms
+  var latitude = req.body.latitude
+  var longitude = req.body.longitude
+  var pincode = req.body.pincode
+  var id = req.body.id
+  if (id) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(id) },
+      data: { firstName: firstName, lastName: lastName, phone: phone, personalMail: personalMail, serviceCategory: serviceCategory, productCategory: productCategory, companyName: companyName, companyMail: companyMail, companyPhone: companyPhone, companyAddress: companyAddress, companyLogo: companyLogo, establishmentType: establishmentType, gstin: gstin, fssai: fssai, pictures: pictures, terms: terms, latitude: latitude, longitude: longitude, pincode: pincode }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Profile successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/vendor_status', async (req, res) => {
+  await executeLatinFunction()
+  var status = req.body.status
+  var id = req.body.id
+  if (status && id) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(id) },
+      data: { status: status + "" }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Vendor status successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/vendor', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  var status = req.query.status
+  var productCategory = req.body.productCategory
+  var pincode = req.body.pincode
+  const result = await prisma.lalasa_vendor.findMany({
+    where: id ? { AND: [{ id: Number(id) }, { isDelete: "1" }] } : status ? { status: status + "" } : productCategory ? { productCategory: productCategory + "" } : pincode ? { pincode: pincode + "" } : {},
+    orderBy: { id: "desc" }
+  })
+  if (result.length > 0) {
+    res.json({ "data": result, "message": "Vendor successfully fetched", "success": true });
+  } else {
+    res.json({ "message": "No vendor found.", "success": false });
+  }
+})
+
+app.delete('/prisma/lalasa/vendor', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  var isDelete = req.query.isDelete
+  if (id && isDelete) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(id) },
+      data: { isDelete: isDelete + "" }
+    });
+    if (result) {
+      res.json({ "message": "Vendor successfully deleted.", "success": true });
+    } else {
+      res.json({ "message": "No Vendor found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/category', async (req, res) => {
+  await executeLatinFunction()
+  var title = req.body.title
+  var image = req.body.image
+  var vendorId = req.body.vendorId
+  if (title && image && vendorId) {
+    const result = await prisma.lalasa_category.create({
+      data: { title: title, image: image, vendorId: vendorId }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Category successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/category', async (req, res) => {
+  await executeLatinFunction()
+  var title = req.body.title
+  var image = req.body.image
+  var vendorId = req.body.vendorId
+  var id = req.body.id
+  if (title && image && vendorId && id) {
+    const result = await prisma.lalasa_category.update({
+      where: { id: Number(id) },
+      data: { title: title, image: image, vendorId: vendorId }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Category successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/category', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  const result = await prisma.lalasa_category.findMany({
+    where: id ? { id: Number(id) } : {},
+    orderBy: { id: "desc" }
+  })
+  if (result.length > 0) {
+    res.json({ "data": result, "message": "Category successfully fetched", "success": true });
+  } else {
+    res.json({ "message": "No category found.", "success": false });
+  }
+})
+
+app.delete('/prisma/lalasa/category', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  if (id) {
+    const result = await prisma.lalasa_category.delete({
+      where: { id: Number(id) },
+    });
+    if (result) {
+      res.json({ "message": "Category successfully deleted.", "success": true });
+    } else {
+      res.json({ "message": "No category found.", "success": false });
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
@@ -2230,7 +2823,7 @@ app.post('/prisma/lalasa/excelUpload/:type', async (req, res) => {
             price: JSON.stringify(row[12]),
             age: JSON.stringify(row[13]),
             bestSelling: JSON.stringify(row[14]),
-            shopId: JSON.stringify(row[15]),
+            vendorId: JSON.stringify(row[15]),
             pincode: JSON.stringify(row[16]),
             userId: "Not Specified",
             category: "Not Specified",
@@ -2252,7 +2845,7 @@ app.post('/prisma/lalasa/excelUpload/:type', async (req, res) => {
             offer: JSON.stringify(row[9]),
             price: JSON.stringify(row[10]),
             bestSelling: JSON.stringify(row[11]),
-            shopId: JSON.stringify(row[12]),
+            vendorId: JSON.stringify(row[12]),
             pincode: JSON.stringify(row[13]),
             weight: "Not Specified",
             gender: "Not Specified",
@@ -2279,7 +2872,7 @@ app.post('/prisma/lalasa/excelUpload/:type', async (req, res) => {
               offer: '0',
               price: JSON.stringify(row[9]),
               bestSelling: '0',
-              shopId: JSON.stringify(row[10]),
+              vendorId: JSON.stringify(row[10]),
               pincode: JSON.stringify(row[11]),
               weight: "Not Specified",
               gender: "Not Specified",
@@ -2305,7 +2898,7 @@ app.post('/prisma/lalasa/excelUpload/:type', async (req, res) => {
                 offer: JSON.stringify(row[8]),
                 price: JSON.stringify(row[9]),
                 bestSelling: JSON.stringify(row[10]),
-                shopId: JSON.stringify(row[11]),
+                vendorId: JSON.stringify(row[11]),
                 pincode: JSON.stringify(row[12]),
                 isAdopt: JSON.stringify(row[13]),
                 weight: JSON.stringify(row[14]),
@@ -2423,7 +3016,7 @@ app.get('/prisma/lalasa/template/:type', async (req, res) => {
     { header: "Price", key: "price", width: 10 },
     { header: "Age", key: "age", width: 10 },
     { header: "BestSelling", key: "bestSelling", width: 10 },
-    { header: "ShopId", key: "shopId", width: 10 },
+    { header: "VendorId", key: "vendorId", width: 10 },
     { header: "Pincode", key: "pincode", width: 10 },
     { header: "petSize", key: "petSize", width: 10 },
     { header: "petAgressive", key: "petAgressive", width: 10 },
@@ -2444,7 +3037,7 @@ app.get('/prisma/lalasa/template/:type', async (req, res) => {
     { header: "Offer", key: "offer", width: 10 },
     { header: "Price", key: "price", width: 10 },
     { header: "BestSelling", key: "bestSelling", width: 10 },
-    { header: "ShopId", key: "shopId", width: 10 },
+    { header: "VendorId", key: "vendorId", width: 10 },
     { header: "Pincode", key: "pincode", width: 10 },
 
   ] : type == 'Restaurant' ? [
@@ -2458,7 +3051,7 @@ app.get('/prisma/lalasa/template/:type', async (req, res) => {
     { header: "Freedelivery", key: "freedelivery", width: 10 },
     { header: "Rating", key: "rating", width: 10 },
     { header: "Price", key: "price", width: 10 },
-    { header: "ShopId", key: "shopId", width: 10 },
+    { header: "VendorId", key: "vendorId", width: 10 },
     { header: "Pincode", key: "pincode", width: 10 },
     { header: "Quantity Price", key: "Quantity Price", width: 25 },
     { header: "Discount", key: "discount", width: 25 }
@@ -2475,7 +3068,7 @@ app.get('/prisma/lalasa/template/:type', async (req, res) => {
     { header: "Offer", key: "offer", width: 10 },
     { header: "Price", key: "price", width: 10 },
     { header: "BestSelling", key: "bestSelling", width: 10 },
-    { header: "ShopId", key: "shopId", width: 10 },
+    { header: "VendorId", key: "vendorId", width: 10 },
     { header: "Pincode", key: "pincode", width: 10 },
     { header: "isAdopt", key: "isAdopt", width: 10 },
     { header: "Weight", key: "weight", width: 10 },
@@ -2653,7 +3246,7 @@ app.use(express.static(__dirname + '/prisma/lalasa/video'));
 
 
 app.get('/prisma/lalasa/images/*', async (req, res) => {
-  // res.sendFile('C:/Users/Admin/Desktop/Network_api/serviceboy/' + req.path.replace("small/", "").replace("prisma/", ""))
+  // res.sendFile('C:/Users/Admin/Desktop/Network_api/lalasa_api/' + req.path.replace("small/", "").replace("prisma/lalasa/", ""))
   res.sendFile('/home/arthy' + req.path.replace("small/", ""))
 })
 

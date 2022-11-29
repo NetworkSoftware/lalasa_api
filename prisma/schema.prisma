@@ -45,39 +45,42 @@ model lalasa_shop {
 }
 
 model lalasa_pets {
-  id           Int      @id @default(autoincrement())
-  name         String
-  type         String
-  image        String
-  breed        String?
-  dob          String?
-  gender       String?
-  weight       String?
-  description  String
-  freedelivery String   @default("0")
-  rating       String   @default("5")
-  offer        String   @default("0")
-  age          String?
-  price        String   @default("0")
-  strikePrice  String   @default("0")
-  bestSelling  String   @default("0")
-  userId       String?
-  shopId       String?
-  isAdopt      String   @default("0")
-  category     String?
-  shopType     String?
-  quantity     String   @default("1")
-  pincode      String
-  petSize      String?
-  petAgressive String?
-  priceRange   String   @default("[]")
-  discount     String   @default("NA")
-  createdOn    DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  name            String
+  petType         String
+  image           String
+  breed           String?
+  dob             String?
+  gender          String?
+  weight          String?
+  description     String
+  freedelivery    String   @default("0")
+  rating          String   @default("5")
+  offer           String   @default("0")
+  age             String?
+  price           String   @default("0")
+  strikePrice     String   @default("0")
+  bestSelling     String   @default("0")
+  userId          String?
+  vendorId        String?
+  isAdopt         String   @default("0")
+  category        String?
+  shopType        String?
+  quantity        String   @default("1")
+  pincode         String
+  petSize         String?
+  petAgressive    String?
+  priceRange      String   @default("[]")
+  discount        String   @default("NA")
+  serviceCategory String   @default("NA")
+  productCategory String   @default("NA")
+  foodType        String   @default("NA")
+  createdOn       DateTime @default(now())
 }
 
 model lalasa_banner {
   id        Int      @id @default(autoincrement())
-  shopId    String
+  vendorId  String
   image     String
   title     String
   offer     String
@@ -106,33 +109,33 @@ model lalasa_treatment {
 }
 
 model lalasa_order {
-  id          Int      @id @default(autoincrement())
-  userId      String
-  petId       String
-  price       String
-  serviceType String
-  date        String
-  time        String?
-  address     String
-  payMethods  String
-  promoCode   String
-  offerAmt    String   @default("0")
-  subTotal    String   @default("0")
-  shippingFee String   @default("0")
-  tax         String   @default("0")
-  grandTotal  String   @default("0")
-  review      String?
-  rating      String   @default("5")
-  orderType   String
-  assignShop  String?
-  status      String
-  paymentId   String
-  reason      String
-  items       String
-  sbId        String?
-  serviceCost Int      @default(0)
-  commission  String   @default("0")
-  createdOn   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  userId       String
+  petId        String
+  price        String
+  serviceType  String
+  date         String
+  time         String?
+  address      String
+  payMethods   String
+  promoCode    String
+  offerAmt     String   @default("0")
+  subTotal     String   @default("0")
+  shippingFee  String   @default("0")
+  tax          String   @default("0")
+  grandTotal   String   @default("0")
+  review       String?
+  rating       String   @default("5")
+  orderType    String
+  assignVendor String?
+  status       String
+  paymentId    String
+  reason       String
+  items        String
+  sbId         String?
+  serviceCost  Int      @default(0)
+  commission   String   @default("0")
+  createdOn    DateTime @default(now())
 }
 
 model lalasa_paycard {
@@ -156,7 +159,7 @@ model lalasa_coupon {
   maxNumber   String   @default("1")
   minOrder    String   @default("100")
   offerType   String
-  shopId      String?
+  vendorId    String?
   createdOn   DateTime @default(now())
 }
 
@@ -227,7 +230,7 @@ model lalasa_serviceboy {
   wallet          Int      @default(0)
   otp             String   @default("0000")
   rating          String   @default("0")
-  commission      String
+  commission      String?
   createdOn       DateTime @default(now())
 }
 
@@ -258,4 +261,55 @@ model lalasa_servicereq {
   reason        String?
   isActive      String   @default("1")
   createdOn     DateTime @default(now())
+}
+
+model lalasa_vendor {
+  id                Int      @id @default(autoincrement())
+  firstName         String
+  lastName          String
+  phone             String
+  personalMail      String
+  serviceCategory   String
+  productCategory   String
+  password          String
+  otp               String?
+  auth_key          String
+  status            String   @default("created")
+  companyName       String?
+  companyMail       String?
+  companyPhone      String?
+  companyAddress    String?
+  companyLogo       String?
+  establishmentType String?
+  gstin             String?
+  fssai             String?
+  pictures          String?
+  terms             String   @default("0")
+  isDelete          String   @default("1")
+  latitude          String?
+  longitude         String?
+  pincode           String?
+  wallet            Int      @default(0)
+  commission        String   @default("0")
+  role              String   @default("Admin")
+  createdOn         DateTime @default(now())
+}
+
+model lalasa_vendor_wallet {
+  id          Int      @id @default(autoincrement())
+  vendorId    String
+  operation   String
+  serviceAmt  Int
+  payMode     String
+  serviceType String
+  reason      String
+  createdOn   DateTime @default(now())
+}
+
+model lalasa_category {
+  id        Int      @id @default(autoincrement())
+  title     String
+  image     String
+  vendorId  String
+  createdOn DateTime @default(now())
 }
