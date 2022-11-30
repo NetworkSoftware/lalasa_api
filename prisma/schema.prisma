@@ -292,6 +292,7 @@ model lalasa_vendor {
   wallet            Int      @default(0)
   commission        String   @default("0")
   role              String   @default("Admin")
+  isAvailable       String   @default("online")
   createdOn         DateTime @default(now())
 }
 
@@ -312,4 +313,14 @@ model lalasa_category {
   image     String
   vendorId  String
   createdOn DateTime @default(now())
+}
+
+model lalasa_vendor_servicereq {
+  id            Int      @id @default(autoincrement())
+  vendorId      String
+  newService    String?
+  serviceStatus String   @default("opened")
+  reason        String?
+  isActive      String   @default("1")
+  createdOn     DateTime @default(now())
 }

@@ -319,7 +319,28 @@ app.put('/prisma/lalasa/approve', async (req, res) => {
       const resultservice = await prisma.lalasa_servicereq.create({
         data: { sbId: result.id + "", newService: 'Grooming', serviceStatus: 'accepted', isActive: '0', reason: "New service request accepted by Admin " }
       });
-      res.json({ "message": "Service approve successfully updated.", "success": true });
+      res.json({ "message": "Service approved successfully updated.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/vendor_approve', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.body.id
+  if (id) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(id) },
+      data: { status: 'complete' }
+    });
+    if (result) {
+      const resultservice = await prisma.lalasa_vendor_servicereq.create({
+        data: { vendorId: result.id + "", newService: 'Grooming', serviceStatus: 'accepted', isActive: '0', reason: "New service request accepted by Admin " }
+      });
+      res.json({ "message": "Service approved.", "success": true });
     } else {
       res.json({ "message": "Error.", "success": false });
     }
@@ -2200,18 +2221,51 @@ app.put('/prisma/lalasa/vendor_wallet', async (req, res) => {
   }
 })
 
+// app.get('/prisma/lalasa/vendor_wallet', async (req, res) => {
+//   await executeLatinFunction()
+//   var vendorId = req.query.vendorId
+//   const result = await prisma.lalasa_vendor_wallet.findMany({
+//     where: vendorId ? { vendorId: vendorId + "" } : {},
+//     orderBy: { id: "desc" }
+//   })
+//   if (result) {
+//     res.json({ "data": result, "message": "wallet successfully fetched", "success": true });
+//   } else {
+//     res.json({ "message": "No wallet found.", "success": false });
+//   }
+// })
+
 app.get('/prisma/lalasa/vendor_wallet', async (req, res) => {
   await executeLatinFunction()
   var vendorId = req.query.vendorId
-  const result = await prisma.lalasa_vendor_wallet.findMany({
-    where: vendorId ? { vendorId: vendorId + "" } : {},
-    orderBy: { id: "desc" }
-  })
-  if (result) {
-    res.json({ "data": result, "message": "wallet successfully fetched", "success": true });
-  } else {
-    res.json({ "message": "No wallet found.", "success": false });
+  var showDate = req.query.showDate
+  let dateInMyTimeZone
+  var totalAmt = 0
+  if (showDate != "All") {
+    var date = new Date(showDate + "")
+    var cuarrentdate = moment.tz(date, "MST").format()
+    dateInMyTimeZone = moment.tz(cuarrentdate, "Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss");
   }
+  const results = await prisma.lalasa_vendor.findFirst({
+    where: vendorId ? { id: Number(vendorId) } : {},
+    orderBy: { id: 'desc' }
+  });
+  const result = (await prisma.lalasa_vendor_wallet.findMany({
+    where: { AND: [vendorId ? { vendorId: vendorId + "" } : {}, showDate && showDate != 'ALL' ? { createdOn: { gte: new Date(dateInMyTimeZone) } } : {}] },
+    orderBy: { id: 'desc' }
+  })).map(function (val, index) {
+    if (val.operation == "add") {
+      totalAmt = totalAmt + val.serviceAmt
+    } else {
+      totalAmt = totalAmt - val.serviceAmt
+    }
+    var cuarrentdate = moment.tz(val.createdOn, "MST").format()
+    let dateInMyTimeZone = moment.tz(cuarrentdate, "Asia/Kolkata").format("DD-MM-YYYY HH:mm:ss");
+    return {
+      "id": val.id, "vendorId": val.vendorId, "operation": val.operation, "serviceAmt": val.serviceAmt, "payMode": val.payMode, "serviceType": val.serviceType, "reason": val.reason, "createdOn": dateInMyTimeZone
+    }
+  });
+  res.json({ "data": result, "amount": totalAmt, "totalamount": results.wallet, "message": "Sucessfully Fetched.", "success": true });
 })
 
 app.delete('/prisma/lalasa/vendor_wallet', async (req, res) => {
@@ -2315,6 +2369,90 @@ app.get('/prisma/lalasa/servicereq', async (req, res) => {
   }
 })
 
+app.post('/prisma/lalasa/vendor_servicereq', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.body.vendorId
+  var newService = req.body.newService
+  var serviceStatus = req.body.serviceStatus
+  var reason = req.body.reason
+  var newServices = JSON.parse(newService)
+  var servicedetails = []
+  if (vendorId) {
+    await Promise.all(newServices.map(async function (ele) {
+      const result = await prisma.lalasa_vendor_servicereq.findFirst({
+        where: { AND: [{ vendorId: vendorId }, { newService: ele }, { serviceStatus: "opened" }, { isActive: '1' }] },
+      });
+      if (!result) {
+        servicedetails.push(ele)
+      }
+    }))
+    if (servicedetails.length > 0) {
+      servicedetails.map(async function (ele) {
+        var resultUpdate = await prisma.lalasa_vendor_servicereq.create({
+          data: { vendorId: vendorId, newService: ele, serviceStatus: serviceStatus, reason: reason }
+        });
+
+      })
+      res.json({ "message": "New service succefully created.", "success": true })
+
+    } else {
+      res.json({ "message": "Service already exist.", "success": false })
+    }
+  }
+})
+
+app.put('/prisma/lalasa/vendor_servicereq', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.body.id
+  var serviceStatus = req.body.serviceStatus
+  var reason = req.body.reason
+  if (id && serviceStatus && reason) {
+    const result = await prisma.lalasa_vendor_servicereq.update({
+      where: { id: Number(id) },
+      data: { isActive: "0" }
+    });
+    if (result) {
+      const resultUpdate = await prisma.lalasa_vendor_servicereq.create({
+        data: { vendorId: result.vendorId + "", newService: result.newService, serviceStatus: serviceStatus, reason: reason, isActive: result.isActive }
+      });
+      if (serviceStatus == "accepted") {
+        const resultupdate = await prisma.lalasa_vendor.findFirst({
+          where: { id: Number(resultUpdate.vendorId) }
+        });
+        var servicearr = []
+        servicearr = JSON.parse(resultupdate.serviceCategory)
+        servicearr.push(result.newService)
+
+        const resultarr = await prisma.lalasa_vendor.update({
+          where: { id: Number(resultUpdate.vendorId) },
+          data: { serviceCategory: JSON.stringify(servicearr) }
+        });
+      }
+      res.json({ "message": "Service successfully updated.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/vendor_servicereq', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.query.vendorId
+  var serviceStatus = req.query.serviceStatus
+  var isActive = req.query.isActive
+  const result = await prisma.lalasa_vendor_servicereq.findMany({
+    where: { AND: [vendorId ? { vendorId: vendorId + "" } : {}, serviceStatus ? { serviceStatus: serviceStatus + "" } : {}, isActive ? { isActive: isActive + "" } : {}] },
+    orderBy: { id: "desc" }
+  })
+  if (result.length > 0) {
+    res.json({ "data": result, "message": "Service Request successfully fetched", "success": true });
+  } else {
+    res.json({ "message": "No Service Request found.", "success": false });
+  }
+})
+
 app.post('/prisma/lalasa/notify', async (req, res) => {
   await executeLatinFunction()
   var title = req.body.title
@@ -2407,6 +2545,7 @@ app.post('/prisma/lalasa/vendor_register', async (req, res) => {
   var latitude = req.body.latitude ? req.body.latitude : "0"
   var longitude = req.body.longitude ? req.body.longitude : "0"
   var pincode = req.body.pincode ? req.body.pincode : "0"
+  var serviceCat = JSON.parse(serviceCategory)
   var otp = Math.floor(1000 + Math.random() * 9000);
   if (firstName && lastName && phone && personalMail && serviceCategory && productCategory && password) {
     const resultUser = await prisma.lalasa_vendor.findFirst({
@@ -2418,6 +2557,11 @@ app.post('/prisma/lalasa/vendor_register', async (req, res) => {
         data: { firstName: firstName, lastName: lastName, phone: phone, personalMail: personalMail, serviceCategory: serviceCategory, productCategory: productCategory, password: password, otp: otp + "", auth_key: authkey, companyName: companyName, companyMail: companyMail, companyPhone: companyPhone, companyAddress: companyAddress, companyLogo: companyLogo, establishmentType: establishmentType, gstin: gstin, fssai: fssai, pictures: pictures, latitude: latitude, longitude: longitude, pincode: pincode }
       });
       if (result) {
+        serviceCat.forEach(async element => {
+          const resultservice = await prisma.lalasa_vendor_servicereq.create({
+            data: { vendorId: result.id + "", newService: element + "", isActive: "0", reason: "New service request recieved by " + firstName + " " + lastName }
+          });
+        })
         var mailOptions = {
           from: 'networksoftwaresolution@gmail.com',
           to: result.personalMail,
@@ -2573,6 +2717,25 @@ app.put('/prisma/lalasa/vendor', async (req, res) => {
   }
 })
 
+app.put('/prisma/lalasa/vendor_available', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.body.vendorId
+  var isAvailable = req.body.isAvailable
+  if (vendorId && isAvailable) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(vendorId) },
+      data: { isAvailable: isAvailable + "" }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Vendor status successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
 app.put('/prisma/lalasa/vendor_profile', async (req, res) => {
   await executeLatinFunction()
   var firstName = req.body.firstName
@@ -2634,9 +2797,10 @@ app.get('/prisma/lalasa/vendor', async (req, res) => {
   var id = req.query.id
   var status = req.query.status
   var productCategory = req.body.productCategory
-  var pincode = req.body.pincode
+  var pincode = req.query.pincode
+  var role = req.query.role
   const result = await prisma.lalasa_vendor.findMany({
-    where: id ? { AND: [{ id: Number(id) }, { isDelete: "1" }] } : status ? { status: status + "" } : productCategory ? { productCategory: productCategory + "" } : pincode ? { pincode: pincode + "" } : {},
+    where: id ? { AND: [{ id: Number(id) }, { isDelete: "1" }] } : status ? { status: status + "" } : productCategory ? { productCategory: productCategory + "" } : pincode ? { pincode: pincode + "" } : role ? { role: role + "" } : {},
     orderBy: { id: "desc" }
   })
   if (result.length > 0) {
@@ -2734,6 +2898,20 @@ app.delete('/prisma/lalasa/category', async (req, res) => {
   } else {
     res.json({ "message": "Required fields missing", "success": false });
   }
+})
+
+app.get('/prisma/lalasa/servicewallet_vendor', async (req, res) => {
+  await executeLatinFunction()
+
+  var process = req.query.process
+  var pending = req.query.pending
+  var wallet = 0
+
+  const result = await prisma.lalasa_vendor.findMany({
+    where: process ? { wallet: { gt: wallet } } : pending ? { wallet: { lt: wallet } } : {},
+    orderBy: { wallet: "desc" }
+  })
+  res.json({ "data": result, "message": "successfully Fetched.", "success": 1 });
 })
 
 async function sendmail(mailOptions) {
