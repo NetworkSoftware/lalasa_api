@@ -2227,19 +2227,24 @@ app.put('/prisma/lalasa/vendor_wallet', async (req, res) => {
   }
 })
 
-// app.get('/prisma/lalasa/vendor_wallet', async (req, res) => {
-//   await executeLatinFunction()
-//   var vendorId = req.query.vendorId
-//   const result = await prisma.lalasa_vendor_wallet.findMany({
-//     where: vendorId ? { vendorId: vendorId + "" } : {},
-//     orderBy: { id: "desc" }
-//   })
-//   if (result) {
-//     res.json({ "data": result, "message": "wallet successfully fetched", "success": true });
-//   } else {
-//     res.json({ "message": "No wallet found.", "success": false });
-//   }
-// })
+app.put('/prisma/lalasa/vendor_update', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.body.id
+  var commission = req.body.commission
+  if (id && commission) {
+    const result = await prisma.lalasa_vendor.update({
+      where: { id: Number(id) },
+      data: { commission: commission }
+    });
+    if (result) {
+      res.json({ "message": "Vendor commission successfully updated.", "success": true });
+    } else {
+      res.json({ "message": "Error.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
 
 app.get('/prisma/lalasa/vendor_wallet', async (req, res) => {
   await executeLatinFunction()
