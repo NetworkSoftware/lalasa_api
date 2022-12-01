@@ -328,18 +328,24 @@ app.put('/prisma/lalasa/approve', async (req, res) => {
   }
 })
 
-app.put('/prisma/lalasa/vendor_approve', async (req, res) => {
+app.put('/prisma/lalasa/vendor_status', async (req, res) => {
   await executeLatinFunction()
   var id = req.body.id
+  var status = req.body.status
+
   if (id) {
     const result = await prisma.lalasa_vendor.update({
       where: { id: Number(id) },
-      data: { status: 'complete' }
+      data: { status: status }
     });
     if (result) {
-      const resultservice = await prisma.lalasa_vendor_servicereq.create({
-        data: { vendorId: result.id + "", newService: 'Grooming', serviceStatus: 'accepted', isActive: '0', reason: "New service request accepted by Admin " }
-      });
+      var newServices = JSON.parse(result.serviceCategory)
+      newServices.map(async function (ele) {
+        var resultUpdate = await prisma.lalasa_vendor_servicereq.create({
+          data: { vendorId: result.id + "", newService: ele, serviceStatus: 'accepted', isActive: '0', reason: "New service request accepted by Admin " }
+        });
+
+      })
       res.json({ "message": "Service approved.", "success": true });
     } else {
       res.json({ "message": "Error.", "success": false });
@@ -2765,25 +2771,6 @@ app.put('/prisma/lalasa/vendor_profile', async (req, res) => {
     });
     if (result) {
       res.json({ "data": result, "message": "Profile successfully updated.", "success": true })
-    } else {
-      res.json({ "message": "Oops! An error occurred.", "success": false })
-    }
-  } else {
-    res.json({ "message": "Required fields missing", "success": false });
-  }
-})
-
-app.put('/prisma/lalasa/vendor_status', async (req, res) => {
-  await executeLatinFunction()
-  var status = req.body.status
-  var id = req.body.id
-  if (status && id) {
-    const result = await prisma.lalasa_vendor.update({
-      where: { id: Number(id) },
-      data: { status: status + "" }
-    });
-    if (result) {
-      res.json({ "data": result, "message": "Vendor status successfully updated.", "success": true })
     } else {
       res.json({ "message": "Oops! An error occurred.", "success": false })
     }
