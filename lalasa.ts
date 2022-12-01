@@ -1294,12 +1294,12 @@ app.get('/prisma/lalasa/vendor_order_count', async (req, res) => {
   fromdate.setDate(fromdate.getDate() - 1);
   todate.setDate(todate.getDate() + 1);
   const todayresult = await prisma.lalasa_vendor_wallet.aggregate({
-    where: { AND: [{ vendorId: vendorId + "" }, { createdOn: { gt: fromdate } }, { createdOn: { lt: todate } }] },
+    where: { AND: [{ vendorId: vendorId + "" }, { operation: "add" }, { createdOn: { gt: fromdate } }, { createdOn: { lt: todate } }] },
     _sum: { serviceAmt: true }
   })
 
   const totalresult = await prisma.lalasa_vendor_wallet.aggregate({
-    where: { vendorId: vendorId + "" },
+    where: { AND: [{ vendorId: vendorId + "" }, { operation: "add" }] },
     _sum: { serviceAmt: true }
   })
 
