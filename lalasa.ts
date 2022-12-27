@@ -143,14 +143,15 @@ app.post('/prisma/lalasa/verify_otp', async (req, res) => {
   await executeLatinFunction()
   var phone = req.body.phone
   var otp = req.body.otp
+  console.log(req.body)
   if (phone && otp) {
     const result = await prisma.lalasa_user.findFirst({
-      where: { OR: [{ email: phone }, { phone: phone }] },
+      where: { AND: [{ OR: [{ email: phone }, { phone: phone }] }, { otp: otp + "" }] },
     });
     if (result) {
       res.json({ "message": "OTP verified successfully.", "success": true });
     } else {
-      res.json({ "message": "User not found.", "success": false });
+      res.json({ "message": "Invalid OTP.", "success": false });
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
@@ -2625,7 +2626,7 @@ app.post('/prisma/lalasa/vendor_verify_otp', async (req, res) => {
   var otp = req.body.otp
   if (phone && otp) {
     const result = await prisma.lalasa_vendor.findFirst({
-      where: { OR: [{ personalMail: phone }, { phone: phone }] },
+      where: { AND: [{ OR: [{ personalMail: phone }, { phone: phone }] }, { otp: otp + "" }] },
     });
     if (result) {
       const resultUpdate = await prisma.lalasa_vendor.update({
@@ -2634,7 +2635,7 @@ app.post('/prisma/lalasa/vendor_verify_otp', async (req, res) => {
       });
       res.json({ "status": resultUpdate.status, "message": "OTP verified successfully.", "success": true });
     } else {
-      res.json({ "message": "Vendor not found.", "success": false });
+      res.json({ "message": "Invalid OTP.", "success": false });
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
@@ -2788,17 +2789,29 @@ app.get('/prisma/lalasa/vendor', async (req, res) => {
   await executeLatinFunction()
   var id = req.query.id
   var status = req.query.status
-  var productCategory = req.body.productCategory
+  var productCategory = req.query.productCategory
   var pincode = req.query.pincode
   var role = req.query.role
   const result = await prisma.lalasa_vendor.findMany({
-    where: id ? { AND: [{ id: Number(id) }, { isDelete: "1" }] } : status ? { status: status + "" } : productCategory ? { productCategory: productCategory + "" } : pincode ? { pincode: pincode + "" } : role ? { role: role + "" } : {},
+    where: { AND: [{ isDelete: '1' }, id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, productCategory ? { productCategory: { in: productCategory + "" } } : {}, role ? { role: role + "" } : {}] },
     orderBy: { id: "desc" }
   })
   if (result.length > 0) {
     res.json({ "data": result, "message": "Vendor successfully fetched", "success": true });
   } else {
     res.json({ "message": "No vendor found.", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/pincode_vendor', async (req, res) => {
+  await executeLatinFunction()
+  var pincode = req.query.pincode
+  const result = await prisma.lalasa_vendor.findMany({
+    where: pincode ? { OR: [{ pincode: pincode + "" }, { role: "SAdmin" }] } : { role: 'SAdmin' },
+    orderBy: { id: "desc" }
+  })
+  if (result) {
+    res.json({ "data": result, "message": "Vendor successfully fetched", "success": true });
   }
 })
 
