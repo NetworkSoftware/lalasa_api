@@ -324,3 +324,14 @@ model lalasa_vendor_servicereq {
   isActive      String   @default("1")
   createdOn     DateTime @default(now())
 }
+
+model lalasa_grooming_services {
+  id          Int      @id @default(autoincrement())
+  vendorId    String
+  title       String
+  oldRate     String
+  newRate     String
+  packageList String
+  isSelected  String   @default("0")
+  createdOn   DateTime @default(now())
+}

@@ -2919,6 +2919,81 @@ app.get('/prisma/lalasa/servicewallet_vendor', async (req, res) => {
   res.json({ "data": result, "message": "successfully Fetched.", "success": 1 });
 })
 
+app.post('/prisma/lalasa/grooming_services', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.body.vendorId
+  var title = req.body.title
+  var oldRate = req.body.oldRate
+  var newRate = req.body.newRate
+  var packageList = req.body.packageList
+  if (vendorId && title && oldRate && newRate && packageList) {
+    const result = await prisma.lalasa_grooming_services.create({
+      data: { vendorId: vendorId, title: title, oldRate: oldRate, newRate: newRate, packageList: packageList }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Grooming services successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.put('/prisma/lalasa/grooming_services', async (req, res) => {
+  await executeLatinFunction()
+  var vendorId = req.body.vendorId
+  var title = req.body.title
+  var oldRate = req.body.oldRate
+  var newRate = req.body.newRate
+  var packageList = req.body.packageList
+  var id = req.body.id
+  if (id) {
+    const result = await prisma.lalasa_grooming_services.update({
+      where: { id: Number(id) },
+      data: { vendorId: vendorId, title: title, oldRate: oldRate, newRate: newRate, packageList: packageList }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Grooming services successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/grooming_services', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  const result = await prisma.lalasa_grooming_services.findMany({
+    where: id ? { id: Number(id) } : {},
+    orderBy: { id: "asc" }
+  })
+  if (result.length > 0) {
+    res.json({ "data": result, "message": "Grooming services successfully fetched", "success": true });
+  } else {
+    res.json({ "message": "No grooming services found.", "success": false });
+  }
+})
+
+app.delete('/prisma/lalasa/grooming_services', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  if (id) {
+    const result = await prisma.lalasa_grooming_services.delete({
+      where: { id: Number(id) },
+    });
+    if (result) {
+      res.json({ "message": "Groomingservices successfully deleted.", "success": true });
+    } else {
+      res.json({ "message": "No grooming services found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
 async function sendmail(mailOptions) {
   transporter.sendMail(mailOptions, function (error, info) {
     if (error) {
