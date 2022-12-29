@@ -143,7 +143,6 @@ app.post('/prisma/lalasa/verify_otp', async (req, res) => {
   await executeLatinFunction()
   var phone = req.body.phone
   var otp = req.body.otp
-  console.log(req.body)
   if (phone && otp) {
     const result = await prisma.lalasa_user.findFirst({
       where: { AND: [{ OR: [{ email: phone }, { phone: phone }] }, { otp: otp + "" }] },
@@ -164,24 +163,28 @@ app.post('/prisma/lalasa/login', async (req, res) => {
   var password = req.body.password
   if (phone && password) {
     const result = await prisma.lalasa_user.findFirst({
-      where: { AND: [{ OR: [{ name: phone }, { phone: phone }, { email: phone }] }, { password: password }] }
+      where: { email: phone }
     });
-
     if (result) {
-      const authkey = require('crypto').randomBytes(16).toString('hex')
-      const resultUser = await prisma.lalasa_user.update({
-        where: { id: Number(result.id) },
-        data: { auth_key: authkey }
+      const resultupdate = await prisma.lalasa_user.findFirst({
+        where: { AND: [{ email: result.email }, { password: password }] }
       });
-
-      if (result) {
-        res.json({ "data": result, "message": "Welcome to LALASA.", "success": true });
-
+      if (resultupdate) {
+        const authkey = require('crypto').randomBytes(16).toString('hex')
+        const resultUser = await prisma.lalasa_user.update({
+          where: { id: Number(result.id) },
+          data: { auth_key: authkey }
+        });
+        if (resultUser) {
+          res.json({ "data": resultUser, "message": "Welcome to LALASA.", "success": true })
+        } else {
+          res.json({ "message": "Oops! An error occurred.", "success": false })
+        }
       } else {
-        res.json({ "message": "Oops! An error occurred.", "success": false })
+        res.json({ "message": "Invalid Password.", "success": false })
       }
     } else {
-      res.json({ "message": "Invalid Password ", "success": false })
+      res.json({ "message": "Email not matched.", "success": false })
     }
   } else {
     res.json({ "message": "Required fields missing", "success": false });
@@ -889,6 +892,59 @@ app.put('/prisma/lalasa/order', async (req, res) => {
     });
     if (result) {
       res.json({ "message": "Review successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.post('/prisma/lalasa/grooming_order', async (req, res) => {
+  await executeLatinFunction()
+  var userId = req.body.userId
+  var petId = req.body.petId
+  var price = req.body.price
+  var serviceType = req.body.serviceType
+  var address = req.body.address
+  var payMethods = req.body.payMethods
+  var promoCode = req.body.promoCode
+  var offerAmt = req.body.offerAmt ? req.body.offerAmt : "0"
+  var subTotal = req.body.subTotal ? req.body.subTotal : "0"
+  var shippingFee = req.body.shippingFee ? req.body.shippingFee : "0"
+  var tax = req.body.tax ? req.body.tax : "0"
+  var grandTotal = req.body.grandTotal ? req.body.grandTotal : "0"
+  var review = req.body.review ? req.body.review : "Not Specified"
+  var rating = req.body.rating ? req.body.rating : "5"
+  var orderType = req.body.orderType
+  var status = req.body.status ? req.body.status : "ordered"
+  var orderItems = req.body.orderItems ? req.body.orderItems : "1"
+  var reason = req.body.reason
+  var paymentId = req.body.paymentId
+  var items = req.body.items
+  var sbId = req.body.sbId ? req.body.sbId : "NA"
+  var result
+  if (userId && petId && price && serviceType && address && payMethods && promoCode && offerAmt && subTotal && tax && grandTotal && review && rating && orderType && status && paymentId && reason && items) {
+    var newSer = JSON.parse(items)
+    var resultOrder = Promise.all(await (newSer.map(async function (val, index) {
+      var percentage = Math.floor((tax / 100) * val.price)
+      result = await prisma.lalasa_order.create({
+        data: {
+          userId: userId, petId: val.id + "", price: val.price, serviceType: serviceType, date: val.serviceDate, time: val.serviceTime, address: address, payMethods: payMethods, promoCode: promoCode, offerAmt: offerAmt, reason: reason,
+          subTotal: (percentage + Number(val.price)) + "", shippingFee: shippingFee, tax: percentage + "", grandTotal: val.price, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignVendor: val.vendorId, items: JSON.stringify(newSer[index]), sbId: sbId
+        }
+      });
+      const resultUpdate = await prisma.track_order.create({
+        data: { orderId: result.id + "", status: "ordered", orderItems: orderItems, description: reason }
+      })
+      const resultUser = await prisma.lalasa_user.findFirst({ where: { id: Number(userId) } })
+      if (orderType == "Grooming") {
+        var metadata = { "id": result.id, "orderType": result.orderType, "status": "ordered" }
+        pushNotification(orderType + ' Service', "New Service available", metadata, "key=" + sbKey, '/topics/allDevices')
+      }
+    })))
+    if (resultOrder) {
+      res.json({ "message": "Order successfully created.", "success": true })
     } else {
       res.json({ "message": "Oops! An error occurred.", "success": false })
     }
@@ -2789,11 +2845,10 @@ app.get('/prisma/lalasa/vendor', async (req, res) => {
   await executeLatinFunction()
   var id = req.query.id
   var status = req.query.status
-  var productCategory = req.query.productCategory
-  var pincode = req.query.pincode
+  var serviceCategory = req.query.serviceCategory
   var role = req.query.role
   const result = await prisma.lalasa_vendor.findMany({
-    where: { AND: [{ isDelete: '1' }, id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, productCategory ? { productCategory: { in: productCategory + "" } } : {}, role ? { role: role + "" } : {}] },
+    where: { AND: [{ isDelete: '1' }, id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, serviceCategory ? { serviceCategory: { in: serviceCategory + "" } } : {}, role ? { role: role + "" } : {}] },
     orderBy: { id: "desc" }
   })
   if (result.length > 0) {
