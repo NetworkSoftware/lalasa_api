@@ -594,6 +594,7 @@ app.get('/prisma/lalasa/partner_get', async (req, res) => {
   var userId = req.query.userId
   var gender = req.query.gender
   var petType = req.query.petType
+  console.log(req.query)
   const result = await prisma.lalasa_pets.findMany({
     where: {
       AND: [{ userId: { not: userId + "" } }, { shopType: "Pet" }, { gender: { not: gender + "" } }, { petType: petType + "" }]
@@ -2848,7 +2849,7 @@ app.get('/prisma/lalasa/vendor', async (req, res) => {
   var serviceCategory = req.query.serviceCategory
   var role = req.query.role
   const result = await prisma.lalasa_vendor.findMany({
-    where: { AND: [{ isDelete: '1' }, id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, serviceCategory ? { serviceCategory: { in: serviceCategory + "" } } : {}, role ? { role: role + "" } : {}] },
+    where: { AND: [{ isDelete: '1' }, id ? { id: Number(id) } : {}, status ? { status: status + "" } : {}, serviceCategory ? { serviceCategory: { contains: serviceCategory + "" } } : {}, role ? { role: role + "" } : {}] },
     orderBy: { id: "desc" }
   })
   if (result.length > 0) {
