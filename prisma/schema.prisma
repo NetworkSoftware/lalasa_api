@@ -24,6 +24,7 @@ model lalasa_user {
   otp       String?
   image     String?
   pincode   String
+  status    String   @default("Registered")
   createdOn DateTime @default(now())
 }
 

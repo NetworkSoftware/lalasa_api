@@ -78,15 +78,16 @@ app.post('/prisma/lalasa/register', async (req, res) => {
   var password = req.body.password
   var image = req.body.image ? req.body.image : "https://cdn4.iconfinder.com/data/icons/small-n-flat/24/user-512.png"
   var pincode = req.body.pincode
+  var status = req.body.status ? req.body.status : 'Registered'
   var otp = Math.floor(1000 + Math.random() * 9000);
-  if (name && email && gender && address && cc && phone && password && image && pincode) {
+  if (name && email && gender && address && cc && phone && password && image && pincode && status) {
     const resultUser = await prisma.lalasa_user.findFirst({
       where: { phone: phone }
     });
     if (!resultUser) {
       const authkey = require('crypto').randomBytes(16).toString('hex')
       const result = await prisma.lalasa_user.create({
-        data: { name: name, email: email, gender: gender, address: address, cc: cc, phone: phone, password: password, image: image, pincode: pincode, otp: otp + "", auth_key: authkey }
+        data: { name: name, email: email, gender: gender, address: address, cc: cc, phone: phone, password: password, image: image, pincode: pincode, otp: otp + "", auth_key: authkey, status: status }
       });
 
       if (result) {
@@ -98,7 +99,7 @@ app.post('/prisma/lalasa/register', async (req, res) => {
         };
         sendmail(mailOptions)
         res.json({
-          "otp": result.otp, "message": "user successfully created.", "success": true
+          "otp": result.otp, "userId": result.id, "message": "user successfully created.", "success": true
         })
       } else {
         res.json({ "message": "Oops! An error occurred.", "success": false })
@@ -148,7 +149,11 @@ app.post('/prisma/lalasa/verify_otp', async (req, res) => {
       where: { AND: [{ OR: [{ email: phone }, { phone: phone }] }, { otp: otp + "" }] },
     });
     if (result) {
-      res.json({ "message": "OTP verified successfully.", "success": true });
+      const resultUser = await prisma.lalasa_user.update({
+        where: { id: Number(result.id) },
+        data: { status: 'OTP Verified' }
+      });
+      res.json({ "data": resultUser, "message": "OTP verified successfully.", "success": true });
     } else {
       res.json({ "message": "Invalid OTP.", "success": false });
     }
@@ -170,15 +175,22 @@ app.post('/prisma/lalasa/login', async (req, res) => {
         where: { AND: [{ email: result.email }, { password: password }] }
       });
       if (resultupdate) {
-        const authkey = require('crypto').randomBytes(16).toString('hex')
-        const resultUser = await prisma.lalasa_user.update({
-          where: { id: Number(result.id) },
-          data: { auth_key: authkey }
+        const resultotp = await prisma.lalasa_user.findFirst({
+          where: { AND: [{ email: result.email }, { status: 'OTP Verified' }] }
         });
-        if (resultUser) {
-          res.json({ "data": resultUser, "message": "Welcome to LALASA.", "success": true })
+        if (resultotp) {
+          const authkey = require('crypto').randomBytes(16).toString('hex')
+          const resultUser = await prisma.lalasa_user.update({
+            where: { id: Number(result.id) },
+            data: { auth_key: authkey }
+          });
+          if (resultUser) {
+            res.json({ "data": resultUser, "message": "Welcome to LALASA.", "success": true })
+          } else {
+            res.json({ "message": "Oops! An error occurred.", "success": false })
+          }
         } else {
-          res.json({ "message": "Oops! An error occurred.", "success": false })
+          res.json({ "message": "Please Verified Your Lalasa Account.", "success": false })
         }
       } else {
         res.json({ "message": "Invalid Password.", "success": false })
