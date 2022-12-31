@@ -413,7 +413,7 @@ app.post('/prisma/lalasa/otp', async (req, res) => {
           text: subject.replace('***', otp + "").replace('#', result.email).replace('**', result.name).replace("*", result.name)
         };
         sendmail(mailOptions)
-        res.json({ "otp": otp, "message": "OTP Sucessfully sent.", "success": true });
+        res.json({ "otp": otp + "", "message": "OTP Sucessfully sent.", "success": true });
       }
     } else {
       res.json({ "message": "User not found.", "success": false });
