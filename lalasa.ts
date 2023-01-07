@@ -606,7 +606,6 @@ app.get('/prisma/lalasa/partner_get', async (req, res) => {
   var userId = req.query.userId
   var gender = req.query.gender
   var petType = req.query.petType
-  console.log(req.query)
   const result = await prisma.lalasa_pets.findMany({
     where: {
       AND: [{ userId: { not: userId + "" } }, { shopType: "Pet" }, { gender: { not: gender + "" } }, { petType: petType + "" }]
@@ -941,10 +940,13 @@ app.post('/prisma/lalasa/grooming_order', async (req, res) => {
     var newSer = JSON.parse(items)
     var resultOrder = Promise.all(await (newSer.map(async function (val, index) {
       var percentage = Math.floor((tax / 100) * val.price)
+      var itemsDet = []
+      itemsDet.push(newSer[index])
       result = await prisma.lalasa_order.create({
         data: {
           userId: userId, petId: val.id + "", price: val.price, serviceType: serviceType, date: val.serviceDate, time: val.serviceTime, address: address, payMethods: payMethods, promoCode: promoCode, offerAmt: offerAmt, reason: reason,
-          subTotal: (percentage + Number(val.price)) + "", shippingFee: shippingFee, tax: percentage + "", grandTotal: val.price, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignVendor: val.vendorId, items: JSON.stringify(newSer[index]), sbId: sbId
+          subTotal: (percentage + Number(val.price)) + "", shippingFee: shippingFee, tax: percentage + "", grandTotal: val.price, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignVendor: val.vendorId,
+          items: JSON.stringify(itemsDet), sbId: sbId
         }
       });
       const resultUpdate = await prisma.track_order.create({
