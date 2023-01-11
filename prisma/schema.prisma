@@ -95,8 +95,9 @@ model lalasa_address {
   city      String
   zipcode   String
   address   String
-  place     String
   userId    String
+  area      String
+  nearby    String
   createdOn DateTime @default(now())
 }
 

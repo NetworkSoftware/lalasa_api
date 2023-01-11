@@ -700,11 +700,12 @@ app.post('/prisma/lalasa/address', async (req, res) => {
   var city = req.body.city
   var zipcode = req.body.zipcode
   var address = req.body.address
-  var place = req.body.place
   var userId = req.body.userId
-  if (name && phone && city && zipcode && address && place && userId) {
+  var area = req.body.area
+  var nearby = req.body.nearby
+  if (name && phone && city && zipcode && address && area && userId && nearby) {
     const result = await prisma.lalasa_address.create({
-      data: { name: name, phone: phone, city: city, zipcode: zipcode, address: address, place: place, userId: userId }
+      data: { name: name, phone: phone, city: city, zipcode: zipcode, address: address, userId: userId, area: area, nearby: nearby }
     });
     if (result) {
       res.json({ "message": "Address successfully created.", "success": true })
@@ -724,11 +725,13 @@ app.put('/prisma/lalasa/address', async (req, res) => {
   var zipcode = req.body.zipcode
   var address = req.body.address
   var userId = req.body.userId
+  var area = req.body.area
+  var nearby = req.body.nearby
   var id = req.body.id
   if (name && phone && city && zipcode && address && userId && id) {
     const result = await prisma.lalasa_address.updateMany({
       where: { id: Number(id) },
-      data: { name: name, phone: phone, city: city, zipcode: zipcode, address: address, userId: userId }
+      data: { name: name, phone: phone, city: city, zipcode: zipcode, address: address, userId: userId, area: area, nearby: nearby }
     });
     if (result) {
       res.json({ "message": "Address successfully updated.", "success": true })
@@ -1715,14 +1718,16 @@ app.get('/prisma/lalasa/settings', async (req, res) => {
 
 app.post('/prisma/lalasa/review', async (req, res) => {
   await executeLatinFunction()
-  var name = req.body.name
   var review = req.body.review
   var userId = req.body.userId
-  if (name && review && userId) {
-    const result = await prisma.lalasa_review.create({
-      data: { name: name, review: review, userId: userId }
+  if (review && userId) {
+    const resultUser = await prisma.lalasa_user.findFirst({
+      where: { id: Number(userId) }
     });
-    if (result) {
+    if (resultUser) {
+      const result = await prisma.lalasa_review.create({
+        data: { name: resultUser.name, review: review, userId: userId }
+      });
       res.json({ "message": "Review successfully created.", "success": true })
     } else {
       res.json({ "message": "Oops! An error occurred.", "success": false })
@@ -1738,7 +1743,7 @@ app.put('/prisma/lalasa/review', async (req, res) => {
   var name = req.body.name
   var review = req.body.review
   var userId = req.body.userId
-  if (id && name && review && userId) {
+  if (id) {
     const result = await prisma.lalasa_review.updateMany({
       where: { id: Number(id) },
       data: { name: name, review: review, userId: userId }
