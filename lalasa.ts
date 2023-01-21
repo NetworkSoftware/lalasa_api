@@ -295,6 +295,29 @@ app.get('/prisma/lalasa/register', async (req, res) => {
   }
 })
 
+app.delete('/prisma/lalasa/user_delete', async (req, res) => {
+  await executeLatinFunction()
+  var id = req.query.id
+  if (id) {
+    const result = await prisma.lalasa_user.delete({
+      where: { id: Number(id) }
+    });
+    if (result) {
+      await prisma.lalasa_order.deleteMany({
+        where: { userId: id + "" }
+      });
+      await prisma.lalasa_pets.deleteMany({
+        where: { userId: id + "" }
+      });
+      res.json({ "message": "User successfully deleted.", "success": true });
+    } else {
+      res.json({ "message": "No user found.", "success": false });
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
 app.put('/prisma/lalasa/shop', async (req, res) => {
   await executeLatinFunction()
   var name = req.body.name
