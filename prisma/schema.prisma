@@ -137,6 +137,10 @@ model lalasa_order {
   sbId         String?
   serviceCost  Int      @default(0)
   commission   String   @default("0")
+  fromDate     String   @default("NA")
+  toDate       String   @default("NA")
+  city         String   @default("NA")
+  location     String   @default("NA")
   createdOn    DateTime @default(now())
 }
 
@@ -336,4 +340,25 @@ model lalasa_grooming_services {
   packageList String
   isSelected  String   @default("0")
   createdOn   DateTime @default(now())
+}
+
+model lalasa_boarding {
+  id             Int    @id @default(autoincrement())
+  vendorId       String
+  wrkEDogs       String
+  wrkECats       String
+  residency      String
+  petSize        String
+  boardDuration  String
+  acceptablePets String
+  oftenWatch     String
+  walkingDay     String
+  walkingTime    String
+  isGroom        String
+  petFood        String
+  petHost        String
+  equipments     String
+  weekendsPrice  String
+  weekdaysPrice  String
+  createdOn DateTime @default(now())
 }

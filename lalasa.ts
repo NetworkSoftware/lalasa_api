@@ -889,11 +889,16 @@ app.post('/prisma/lalasa/order', async (req, res) => {
   var assignVendor = req.body.assignVendor ? req.body.assignVendor : "Not Specified"
   var items = req.body.items
   var sbId = req.body.sbId ? req.body.sbId : "NA"
+  var fromDate = req.body.fromDate ? req.body.fromDate : "NA"
+  var toDate = req.body.toDate ? req.body.toDate : "NA"
+  var city = req.body.city ? req.body.city : "NA"
+  var location = req.body.location ? req.body.location : "NA"
   if (userId && petId && price && serviceType && date && address && payMethods && promoCode && offerAmt && subTotal && shippingFee && tax && grandTotal && review && rating && orderType && status && paymentId && reason && items) {
     const result = await prisma.lalasa_order.create({
       data: {
         userId: userId, petId: petId, price: price, serviceType: serviceType, date: date, time: time, address: address, payMethods: payMethods, promoCode: promoCode, offerAmt: offerAmt, reason: reason,
-        subTotal: subTotal, shippingFee: shippingFee, tax: tax, grandTotal: grandTotal, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignVendor: assignVendor, items: items, sbId: sbId
+        subTotal: subTotal, shippingFee: shippingFee, tax: tax, grandTotal: grandTotal, review: review, rating: rating, orderType: orderType, status: status, paymentId: paymentId, assignVendor: assignVendor, items: items, sbId: sbId,
+        fromDate: fromDate, toDate: toDate, city: city, location: location
       }
     });
     var orderId = String(result.id);
@@ -1208,7 +1213,7 @@ app.get('/prisma/lalasa/order', async (req, res) => {
     return {
       "id": val.id, "userId": val.userId, "petId": val.petId,
       "price": val.price, "serviceType": val.serviceType, "date": val.date, "time": val.time,
-      "address": val.address, "payMethods": val.payMethods, "promoCode": val.promoCode,
+      "address": val.address, "payMethods": val.payMethods, "promoCode": val.promoCode, "fromDate": val.fromDate, "toDate": val.toDate, "city": val.city, "location": val.location,
       "offerAmt": val.offerAmt, "subTotal": val.subTotal, "shippingFee": val.shippingFee, "tax": val.tax, "paymentId": val.paymentId, "reason": val.reason, "items": val.items, "sbId": val.sbId,
       "grandTotal": val.grandTotal, "assignVendor": val.assignVendor, "review": val.review, "rating": val.rating, "orderType": val.orderType, "status": val.status, "createdOn": val.createdOn,
       "UserName": UserName.has(val.userId) ? UserName.get(val.userId) : "NA",
@@ -2657,6 +2662,11 @@ app.post('/prisma/lalasa/vendor_register', async (req, res) => {
   var longitude = req.body.longitude ? req.body.longitude : "0"
   var pincode = req.body.pincode ? req.body.pincode : "0"
   var serviceCat = JSON.parse(serviceCategory)
+  var boarding = req.body.boarding
+  console.log(req.body)
+  if (boarding) {
+    var boardings = JSON.parse(boarding)
+  }
   var otp = Math.floor(1000 + Math.random() * 9000);
   if (firstName && lastName && phone && personalMail && serviceCategory && productCategory && password) {
     const resultUser = await prisma.lalasa_vendor.findFirst({
@@ -2668,6 +2678,12 @@ app.post('/prisma/lalasa/vendor_register', async (req, res) => {
         data: { firstName: firstName, lastName: lastName, phone: phone, personalMail: personalMail, serviceCategory: serviceCategory, productCategory: productCategory, password: password, otp: otp + "", auth_key: authkey, companyName: companyName, companyMail: companyMail, companyPhone: companyPhone, companyAddress: companyAddress, companyLogo: companyLogo, establishmentType: establishmentType, gstin: gstin, fssai: fssai, pictures: pictures, latitude: latitude, longitude: longitude, pincode: pincode }
       });
       if (result) {
+        boardings.map(async function (ele, index) {
+          const resultboarding = await prisma.lalasa_boarding.create({
+            data: { vendorId: result.id + "", wrkEDogs: ele.wrkEDogs, wrkECats: ele.wrkECats, residency: ele.residency, petSize: ele.petSize, boardDuration: ele.boardDuration, acceptablePets: ele.acceptablePets, oftenWatch: ele.oftenWatch, walkingDay: ele.walkingDay, walkingTime: ele.walkingTime, isGroom: ele.isGroom, petFood: ele.petFood, petHost: ele.petHost, equipments: ele.equipments, weekendsPrice: ele.weekendsPrice, weekdaysPrice: ele.weekdaysPrice }
+          });
+        })
+
         serviceCat.forEach(async element => {
           const resultservice = await prisma.lalasa_vendor_servicereq.create({
             data: { vendorId: result.id + "", newService: element + "", isActive: "0", reason: "New service request recieved by " + firstName + " " + lastName }
@@ -3090,6 +3106,66 @@ app.delete('/prisma/lalasa/grooming_services', async (req, res) => {
   } else {
     res.json({ "message": "Required fields missing", "success": false });
   }
+})
+
+app.put('/prisma/lalasa/boarding', async (req, res) => {
+  await executeLatinFunction()
+  var wrkEDogs = req.body.wrkEDogs
+  var wrkECats = req.body.wrkECats
+  var residency = req.body.residency
+  var petSize = req.body.petSize
+  var boardDuration = req.body.boardDuration
+  var acceptablePets = req.body.acceptablePets
+  var oftenWatch = req.body.oftenWatch
+  var walkingDay = req.body.walkingDay
+  var walkingTime = req.body.walkingTime
+  var isGroom = req.body.isGroom
+  var petFood = req.body.petFood
+  var petHost = req.body.petHost
+  var equipments = req.body.equipments
+  var weekendsPrice = req.body.weekendsPrice
+  var weekdaysPrice = req.body.weekdaysPrice
+  var id = req.body.id
+  if (id) {
+    const result = await prisma.lalasa_boarding.update({
+      where: { id: Number(id) },
+      data: { wrkEDogs: wrkEDogs, wrkECats: wrkECats, residency: residency, petSize: petSize, boardDuration: boardDuration, acceptablePets: acceptablePets, oftenWatch: oftenWatch, walkingDay: walkingDay, walkingTime: walkingTime, isGroom: isGroom, petFood: petFood, petHost: petHost, equipments: equipments, weekendsPrice: weekendsPrice, weekdaysPrice: weekdaysPrice }
+    });
+    if (result) {
+      res.json({ "data": result, "message": "Boarding services successfully updated.", "success": true })
+    } else {
+      res.json({ "message": "Oops! An error occurred.", "success": false })
+    }
+  } else {
+    res.json({ "message": "Required fields missing", "success": false });
+  }
+})
+
+app.get('/prisma/lalasa/boardingVendor', async (req, res) => {
+  await executeLatinFunction()
+  var Vendor = new Map();
+  (await prisma.lalasa_vendor.findMany()).forEach(element => {
+    Vendor.set(element.id + "", element)
+  });
+  var Boarding = new Map();
+  (await prisma.lalasa_boarding.findMany()).forEach(element => {
+    Boarding.set(element.vendorId + "", element)
+  });
+  var id = req.query.id
+  var serviceStatus = req.query.serviceStatus
+  var newService = req.query.newService
+  console.log(req.query)
+  const result = (await prisma.lalasa_vendor_servicereq.findMany({
+    where: { AND: [id ? { id: Number(id) } : {}, serviceStatus ? { serviceStatus: serviceStatus + "" } : {}, newService ? { newService: newService + "" } : {}] },
+    orderBy: { id: "asc" }
+  })).map(function (val, index) {
+    return {
+      "id": val.id, "vendorId": val.vendorId, "newService": val.newService, "serviceStatus": val.serviceStatus, "reason": val.reason, "isActive": val.isActive, "createdOn": val.createdOn,
+      "vendorDet": Vendor.has(val.vendorId) ? Vendor.get(val.vendorId) : "NA",
+      "boardingDet": Boarding.has(val.vendorId) ? Boarding.get(val.vendorId) : "NA"
+    }
+  });
+  res.json({ "data": result, "success": true, "message": "Successfully Fetch." });
 })
 
 async function sendmail(mailOptions) {
